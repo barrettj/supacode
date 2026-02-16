@@ -41,6 +41,8 @@ struct SettingsView: View {
             .tag(SettingsSection.advanced)
           Label("GitHub", systemImage: "arrow.triangle.branch")
             .tag(SettingsSection.github)
+          Label("Remote Control", systemImage: "iphone.and.arrow.left.and.arrow.right")
+            .tag(SettingsSection.remoteControl)
 
           Section("Repositories") {
             ForEach(repositories) { repository in
@@ -91,6 +93,12 @@ struct SettingsView: View {
           GithubSettingsView(store: settingsStore)
             .navigationTitle("GitHub")
             .navigationSubtitle("GitHub CLI integration")
+        }
+      case .remoteControl:
+        SettingsDetailView {
+          RemoteControlSettingsView(store: settingsStore)
+            .navigationTitle("Remote Control")
+            .navigationSubtitle("iOS remote access")
         }
       case .repository(let repositoryID):
         if let repository = repositories[id: repositoryID] {

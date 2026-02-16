@@ -19,6 +19,8 @@ struct SettingsFeature {
     var githubIntegrationEnabled: Bool
     var deleteBranchOnDeleteWorktree: Bool
     var automaticallyArchiveMergedWorktrees: Bool
+    var remoteControlEnabled: Bool
+    var remoteControlPin: String
     var selection: SettingsSection? = .general
     var repositorySettings: RepositorySettingsFeature.State?
 
@@ -38,6 +40,8 @@ struct SettingsFeature {
       githubIntegrationEnabled = settings.githubIntegrationEnabled
       deleteBranchOnDeleteWorktree = settings.deleteBranchOnDeleteWorktree
       automaticallyArchiveMergedWorktrees = settings.automaticallyArchiveMergedWorktrees
+      remoteControlEnabled = settings.remoteControlEnabled
+      remoteControlPin = settings.remoteControlPin
     }
 
     var globalSettings: GlobalSettings {
@@ -55,7 +59,9 @@ struct SettingsFeature {
         crashReportsEnabled: crashReportsEnabled,
         githubIntegrationEnabled: githubIntegrationEnabled,
         deleteBranchOnDeleteWorktree: deleteBranchOnDeleteWorktree,
-        automaticallyArchiveMergedWorktrees: automaticallyArchiveMergedWorktrees
+        automaticallyArchiveMergedWorktrees: automaticallyArchiveMergedWorktrees,
+        remoteControlEnabled: remoteControlEnabled,
+        remoteControlPin: remoteControlPin
       )
     }
   }
@@ -110,6 +116,8 @@ struct SettingsFeature {
         state.githubIntegrationEnabled = normalizedSettings.githubIntegrationEnabled
         state.deleteBranchOnDeleteWorktree = normalizedSettings.deleteBranchOnDeleteWorktree
         state.automaticallyArchiveMergedWorktrees = normalizedSettings.automaticallyArchiveMergedWorktrees
+        state.remoteControlEnabled = normalizedSettings.remoteControlEnabled
+        state.remoteControlPin = normalizedSettings.remoteControlPin
         return .send(.delegate(.settingsChanged(normalizedSettings)))
 
       case .binding:

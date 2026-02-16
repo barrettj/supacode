@@ -13,6 +13,8 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
   var githubIntegrationEnabled: Bool
   var deleteBranchOnDeleteWorktree: Bool
   var automaticallyArchiveMergedWorktrees: Bool
+  var remoteControlEnabled: Bool
+  var remoteControlPin: String
 
   static let `default` = GlobalSettings(
     appearanceMode: .dark,
@@ -28,7 +30,9 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     crashReportsEnabled: true,
     githubIntegrationEnabled: true,
     deleteBranchOnDeleteWorktree: true,
-    automaticallyArchiveMergedWorktrees: false
+    automaticallyArchiveMergedWorktrees: false,
+    remoteControlEnabled: false,
+    remoteControlPin: ""
   )
 
   init(
@@ -45,7 +49,9 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     crashReportsEnabled: Bool,
     githubIntegrationEnabled: Bool,
     deleteBranchOnDeleteWorktree: Bool,
-    automaticallyArchiveMergedWorktrees: Bool
+    automaticallyArchiveMergedWorktrees: Bool,
+    remoteControlEnabled: Bool,
+    remoteControlPin: String
   ) {
     self.appearanceMode = appearanceMode
     self.defaultEditorID = defaultEditorID
@@ -61,6 +67,8 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     self.githubIntegrationEnabled = githubIntegrationEnabled
     self.deleteBranchOnDeleteWorktree = deleteBranchOnDeleteWorktree
     self.automaticallyArchiveMergedWorktrees = automaticallyArchiveMergedWorktrees
+    self.remoteControlEnabled = remoteControlEnabled
+    self.remoteControlPin = remoteControlPin
   }
 
   init(from decoder: any Decoder) throws {
@@ -101,5 +109,11 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     automaticallyArchiveMergedWorktrees =
       try container.decodeIfPresent(Bool.self, forKey: .automaticallyArchiveMergedWorktrees)
       ?? Self.default.automaticallyArchiveMergedWorktrees
+    remoteControlEnabled =
+      try container.decodeIfPresent(Bool.self, forKey: .remoteControlEnabled)
+      ?? Self.default.remoteControlEnabled
+    remoteControlPin =
+      try container.decodeIfPresent(String.self, forKey: .remoteControlPin)
+      ?? Self.default.remoteControlPin
   }
 }
