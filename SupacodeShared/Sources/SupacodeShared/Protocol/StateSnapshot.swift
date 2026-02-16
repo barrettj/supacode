@@ -17,15 +17,16 @@ public struct StateSnapshot: Codable, Sendable, Equatable {
 }
 
 public struct RemoteWorktreeState: Codable, Sendable, Equatable {
-  public let worktree: RemoteWorktree
-  public let tabs: [RemoteTab]
-  public let selectedTabID: String?
-  public let splitTrees: [String: RemoteSplitTree]
-  public let focusedSurfaceByTab: [String: String]
-  public let notifications: [RemoteNotification]
-  public let taskStatus: RemoteTaskStatus
-  public let isRunScriptRunning: Bool
-  public let hasUnseenNotifications: Bool
+  public var worktree: RemoteWorktree
+  public var tabs: [RemoteTab]
+  public var selectedTabID: String?
+  public var splitTrees: [String: RemoteSplitTree]
+  public var focusedSurfaceByTab: [String: String]
+  public var notifications: [RemoteNotification]
+  public var taskStatus: RemoteTaskStatus
+  public var isRunScriptRunning: Bool
+  public var hasUnseenNotifications: Bool
+  public var surfaces: [String: RemoteSurface]
 
   public init(
     worktree: RemoteWorktree,
@@ -36,7 +37,8 @@ public struct RemoteWorktreeState: Codable, Sendable, Equatable {
     notifications: [RemoteNotification],
     taskStatus: RemoteTaskStatus,
     isRunScriptRunning: Bool,
-    hasUnseenNotifications: Bool
+    hasUnseenNotifications: Bool,
+    surfaces: [String: RemoteSurface] = [:]
   ) {
     self.worktree = worktree
     self.tabs = tabs
@@ -47,5 +49,6 @@ public struct RemoteWorktreeState: Codable, Sendable, Equatable {
     self.taskStatus = taskStatus
     self.isRunScriptRunning = isRunScriptRunning
     self.hasUnseenNotifications = hasUnseenNotifications
+    self.surfaces = surfaces
   }
 }

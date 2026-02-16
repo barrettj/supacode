@@ -30,4 +30,20 @@ public struct RemoteSplitTree: Codable, Sendable, Equatable {
     case horizontal
     case vertical
   }
+
+  public func containsSurface(_ surfaceID: String) -> Bool {
+    guard let root else { return false }
+    return root.containsSurface(surfaceID)
+  }
+}
+
+extension RemoteSplitTree.Node {
+  public func containsSurface(_ surfaceID: String) -> Bool {
+    switch self {
+    case .leaf(let sid):
+      return sid == surfaceID
+    case .split(let split):
+      return split.left.containsSurface(surfaceID) || split.right.containsSurface(surfaceID)
+    }
+  }
 }
