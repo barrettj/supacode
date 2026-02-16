@@ -62,6 +62,18 @@ final class WorktreeTerminalState {
     runScriptTabId != nil
   }
 
+  var splitTrees: [TerminalTabID: SplitTree<GhosttySurfaceView>] {
+    trees
+  }
+
+  var allSurfaces: [UUID: GhosttySurfaceView] {
+    surfaces
+  }
+
+  var focusedSurfaces: [TerminalTabID: UUID] {
+    focusedSurfaceIdByTab
+  }
+
   func ensureInitialTab(focusing: Bool) {
     guard tabManager.tabs.isEmpty else { return }
     guard !isEnsuringInitialTab else { return }

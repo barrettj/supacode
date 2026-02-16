@@ -208,6 +208,10 @@ final class WorktreeTerminalManager {
     states[worktreeID]
   }
 
+  func allStates() -> [Worktree.ID: WorktreeTerminalState] {
+    states
+  }
+
   func taskStatus(for worktreeID: Worktree.ID) -> WorktreeTaskStatus? {
     states[worktreeID]?.taskStatus
   }
