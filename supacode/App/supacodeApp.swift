@@ -12,6 +12,7 @@ import GhosttyKit
 import PostHog
 import Sentry
 import Sharing
+import SupacodeShared
 import SwiftUI
 
 private enum GhosttyCLI {
@@ -80,6 +81,9 @@ struct SupacodeApp: App {
   @State private var terminalManager: WorktreeTerminalManager
   @State private var worktreeInfoWatcher: WorktreeInfoWatcherManager
   @State private var commandKeyObserver: CommandKeyObserver
+  @State private var remoteControlServer: RemoteControlServer
+  @State private var terminalContentStreamer: TerminalContentStreamer
+  @State private var commandRouter: CommandRouter
   @State private var store: StoreOf<AppFeature>
 
   @MainActor init() {
@@ -126,6 +130,12 @@ struct SupacodeApp: App {
     _worktreeInfoWatcher = State(initialValue: worktreeInfoWatcher)
     let keyObserver = CommandKeyObserver()
     _commandKeyObserver = State(initialValue: keyObserver)
+    let server = RemoteControlServer()
+    _remoteControlServer = State(initialValue: server)
+    let contentStreamer = TerminalContentStreamer(terminalManager: terminalManager)
+    _terminalContentStreamer = State(initialValue: contentStreamer)
+    // storeRef is captured by closures that run after init completes
+    nonisolated(unsafe) var storeRef: StoreOf<AppFeature>?
     let appStore = Store(
       initialState: AppFeature.State(settings: SettingsFeature.State(settings: initialSettings))
     ) {
@@ -148,8 +158,77 @@ struct SupacodeApp: App {
           worktreeInfoWatcher.eventStream()
         }
       )
+      values.remoteControlClient = RemoteControlClient(
+        start: { pin in
+          try server.start(pin: pin)
+        },
+        stop: {
+          server.stop()
+          contentStreamer.stopAllStreaming()
+        },
+        isRunning: {
+          server.isRunning
+        },
+        broadcastStateUpdate: {
+          guard server.isRunning, !server.connectedDevices.isEmpty,
+            let store = storeRef
+          else { return }
+          let snapshot = StateSerializer.serializeSnapshot(
+            repositories: store.repositories.repositories.elements.map { $0 },
+            selectedWorktreeID: store.repositories.selectedWorktreeID,
+            terminalManager: terminalManager,
+          )
+          if let message = try? RemoteMessage(type: .stateSnapshot, payload: snapshot) {
+            server.broadcast(message)
+          }
+        },
+        connectedDevices: {
+          server.connectedDevices
+        },
+        disconnect: { deviceID in
+          server.disconnect(deviceID: deviceID)
+        },
+      )
     }
+    storeRef = appStore
     _store = State(initialValue: appStore)
+    let commandRouter = CommandRouter(
+      terminalManager: terminalManager,
+      repositories: {
+        appStore.repositories.repositories.elements.map { $0 }
+      },
+      onSelectWorktree: { worktreeID in
+        appStore.send(.repositories(.selectWorktree(worktreeID)))
+      },
+      onSelectNextWorktree: {
+        appStore.send(.repositories(.selectNextWorktree))
+      },
+      onSelectPreviousWorktree: {
+        appStore.send(.repositories(.selectPreviousWorktree))
+      },
+    )
+    _commandRouter = State(initialValue: commandRouter)
+    server.onCommandReceived = { _, command in
+      commandRouter.route(command)
+    }
+    server.onTerminalContentRequested = { sessionID, request in
+      switch request.action {
+      case .startStreaming:
+        contentStreamer.startStreaming(surfaceID: request.surfaceID) { content in
+          if let message = try? RemoteMessage(type: .terminalContent, payload: content) {
+            server.sendToSession(sessionID, message: message)
+          }
+        }
+      case .stopStreaming:
+        contentStreamer.stopStreaming(surfaceID: request.surfaceID)
+      case .requestOnce:
+        if let content = contentStreamer.readContentOnce(surfaceID: request.surfaceID),
+          let message = try? RemoteMessage(type: .terminalContent, payload: content)
+        {
+          server.sendToSession(sessionID, message: message)
+        }
+      }
+    }
     appDelegate.appStore = appStore
     SettingsWindowManager.shared.configure(
       store: appStore,

@@ -2,6 +2,7 @@ import AppKit
 import ComposableArchitecture
 import Foundation
 import PostHog
+import SupacodeShared
 import SwiftUI
 
 private let notificationSound: NSSound? = {
@@ -84,11 +85,13 @@ struct AppFeature {
   @Dependency(\.settingsWindowClient) private var settingsWindowClient
   @Dependency(\.terminalClient) private var terminalClient
   @Dependency(\.worktreeInfoWatcher) private var worktreeInfoWatcher
+  @Dependency(\.remoteControlClient) private var remoteControlClient
 
   var body: some Reducer<State, Action> {
     let core = Reduce<State, Action> { state, action in
       switch action {
       case .appLaunched:
+        let remoteControlClient = remoteControlClient
         return .merge(
           .send(.repositories(.task)),
           .send(.settings(.task)),
@@ -101,6 +104,12 @@ struct AppFeature {
             for await event in await worktreeInfoWatcher.events() {
               await send(.repositories(.worktreeInfoEvent(event)))
             }
+          },
+          .run { _ in
+            @Shared(.settingsFile) var settingsFile
+            let settings = settingsFile.global
+            guard settings.remoteControlEnabled, !settings.remoteControlPin.isEmpty else { return }
+            try? await remoteControlClient.start(settings.remoteControlPin)
           }
         )
 
@@ -265,6 +274,9 @@ struct AppFeature {
             defaultEditorID: settings.defaultEditorID
           )
         }
+        let remoteControlEnabled = settings.remoteControlEnabled
+        let remoteControlPin = settings.remoteControlPin
+        let remoteControlClient = remoteControlClient
         return .merge(
           .send(.repositories(.setGithubIntegrationEnabled(settings.githubIntegrationEnabled))),
           .send(
@@ -295,6 +307,17 @@ struct AppFeature {
             await worktreeInfoWatcher.send(
               .setPullRequestTrackingEnabled(settings.githubIntegrationEnabled)
             )
+          },
+          .run { _ in
+            if remoteControlEnabled, !remoteControlPin.isEmpty {
+              if await !remoteControlClient.isRunning() {
+                try? await remoteControlClient.start(remoteControlPin)
+              }
+            } else {
+              if await remoteControlClient.isRunning() {
+                await remoteControlClient.stop()
+              }
+            }
           }
         )
 
@@ -606,8 +629,10 @@ struct AppFeature {
         return .none
 
       case .terminalEvent(.notificationReceived(let worktreeID, _, _)):
+        let remoteControlClient = remoteControlClient
         var effects: [Effect<Action>] = [
-          .send(.repositories(.worktreeNotificationReceived(worktreeID)))
+          .send(.repositories(.worktreeNotificationReceived(worktreeID))),
+          .run { _ in await remoteControlClient.broadcastStateUpdate() },
         ]
         if state.settings.notificationSoundEnabled {
           effects.append(
@@ -636,7 +661,8 @@ struct AppFeature {
         } else {
           state.runScriptStatusByWorktreeID.removeValue(forKey: worktreeID)
         }
-        return .none
+        let remoteControlClient = remoteControlClient
+        return .run { _ in await remoteControlClient.broadcastStateUpdate() }
 
       case .terminalEvent(.commandPaletteToggleRequested(let worktreeID)):
         if state.commandPalette.isPresented {
@@ -648,6 +674,13 @@ struct AppFeature {
         )
       case .terminalEvent(.setupScriptConsumed(let worktreeID)):
         return .send(.repositories(.consumeSetupScript(worktreeID)))
+
+      case .terminalEvent(.tabCreated),
+        .terminalEvent(.tabClosed),
+        .terminalEvent(.focusChanged),
+        .terminalEvent(.taskStatusChanged):
+        let remoteControlClient = remoteControlClient
+        return .run { _ in await remoteControlClient.broadcastStateUpdate() }
 
       case .terminalEvent:
         return .none
