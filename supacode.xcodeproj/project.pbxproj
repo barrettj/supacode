@@ -151,6 +151,7 @@
 				D661760A2F250A60000FC27C /* CasePaths */,
 				8B2985744DB94333AE1B5878 /* Sentry */,
 				D6D054272F2E3EBF00D70ED5 /* PostHog */,
+				D6RC00022F4000000000AA02 /* SupacodeShared */,
 			);
 			productName = supacode;
 			productReference = D69CE04A2F1F378200584C57 /* supacode.app */;
@@ -175,6 +176,7 @@
 			name = supacodeTests;
 			packageProductDependencies = (
 				D63D00F62F2A5EEE00018D05 /* DependenciesTestSupport */,
+				D6RC00032F4000000000AA03 /* SupacodeShared */,
 			);
 			productName = supacodeTests;
 			productReference = D6F821012F1FCBC1004B4174 /* supacodeTests.xctest */;
@@ -215,6 +217,7 @@
 				B43B9188E1D223E6F7344501 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 				899A0B6B6B42424B92CD20C2 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				D6D054262F2E3EB300D70ED5 /* XCRemoteSwiftPackageReference "posthog-ios" */,
+				D6RC00012F4000000000AA01 /* XCLocalSwiftPackageReference "SupacodeShared" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D69CE04B2F1F378200584C57 /* Products */;
@@ -640,6 +643,13 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		D6RC00012F4000000000AA01 /* XCLocalSwiftPackageReference "SupacodeShared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = SupacodeShared;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		497B582F42253CBC8FBF101F /* ComposableArchitecture */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -675,6 +685,14 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D6D054262F2E3EB300D70ED5 /* XCRemoteSwiftPackageReference "posthog-ios" */;
 			productName = PostHog;
+		};
+		D6RC00022F4000000000AA02 /* SupacodeShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SupacodeShared;
+		};
+		D6RC00032F4000000000AA03 /* SupacodeShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SupacodeShared;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
