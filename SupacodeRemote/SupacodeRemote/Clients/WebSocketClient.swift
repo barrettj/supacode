@@ -3,11 +3,10 @@
 import ComposableArchitecture
 import Foundation
 import Network
-import OSLog
 import SupacodeShared
 import Synchronization
 
-private let logger = Logger(subsystem: "com.supacode.remote", category: "WebSocket")
+private let logger = RemoteLogger("WebSocket")
 
 struct WebSocketClient {
   var connect: @Sendable (NWEndpoint) async throws -> Void

@@ -2,9 +2,8 @@
 
 import ComposableArchitecture
 import Network
-import OSLog
 
-private let logger = Logger(subsystem: "com.supacode.remote", category: "Bonjour")
+private let logger = RemoteLogger("Bonjour")
 
 struct DiscoveredHost: Equatable, Identifiable, Sendable {
   let id: String
@@ -81,7 +80,6 @@ private final class BonjourManager: Sendable {
       switch state {
       case .failed(let error):
         logger.warning("Bonjour browser failed: \(error)")
-        self?.continuation.yield([])
       case .cancelled:
         self?.continuation.finish()
       default:

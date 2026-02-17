@@ -26,6 +26,14 @@ struct RemoteControlSettingsView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
         }
 
+        if let error = store.remoteControlError {
+          Section {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+              .foregroundStyle(.red)
+              .font(.callout)
+          }
+        }
+
         if store.remoteControlEnabled {
           Section("Display Name") {
             VStack(alignment: .leading) {

@@ -3,10 +3,9 @@
 import ComposableArchitecture
 import Foundation
 import Network
-import OSLog
 import SupacodeShared
 
-private let logger = Logger(subsystem: "com.supacode.remote", category: "Connection")
+private let logger = RemoteLogger("Connection")
 
 @Reducer
 struct ConnectionFeature {
@@ -167,7 +166,20 @@ struct ConnectionFeature {
             }
           }()
           do {
-            let token = try await remoteStateClient.connect(endpoint, pin, existingToken)
+            let token = try await withThrowingTaskGroup(of: String?.self) { group in
+              group.addTask {
+                try await remoteStateClient.connect(endpoint, pin, existingToken)
+              }
+              group.addTask {
+                try await Task.sleep(for: .seconds(10))
+                throw RemoteStateError.timeout
+              }
+              guard let result = try await group.next() else {
+                throw RemoteStateError.timeout
+              }
+              group.cancelAll()
+              return result
+            }
             await send(.connectionResult(.success(ConnectionSuccess(hostID: hostID, pin: pin, sessionToken: token))))
           } catch {
             await send(.connectionResult(.failure(error)))

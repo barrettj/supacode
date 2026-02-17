@@ -23,6 +23,7 @@ struct SettingsFeature {
     var remoteControlName: String
     var remoteControlPin: String
     var remoteControlPort: Int
+    var remoteControlError: String?
     var selection: SettingsSection? = .general
     var repositorySettings: RepositorySettingsFeature.State?
 
@@ -76,6 +77,7 @@ struct SettingsFeature {
     case task
     case settingsLoaded(GlobalSettings)
     case setSelection(SettingsSection?)
+    case setRemoteControlError(String?)
     case repositorySettings(RepositorySettingsFeature.Action)
     case delegate(Delegate)
     case binding(BindingAction<State>)
@@ -144,6 +146,10 @@ struct SettingsFeature {
           analyticsClient.capture("settings_changed", nil)
         }
         return .send(.delegate(.settingsChanged(settings)))
+
+      case .setRemoteControlError(let error):
+        state.remoteControlError = error
+        return .none
 
       case .setSelection(let selection):
         state.selection = selection ?? .general

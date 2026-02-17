@@ -107,14 +107,16 @@ struct AppFeature {
               await send(.repositories(.worktreeInfoEvent(event)))
             }
           },
-          .run { _ in
+          .run { send in
             @Shared(.settingsFile) var settingsFile
             let settings = settingsFile.global
             guard settings.remoteControlEnabled, !settings.remoteControlPin.isEmpty else { return }
             do {
               try await remoteControlClient.start(settings.remoteControlPin, UInt16(clamping: settings.remoteControlPort), settings.remoteControlName)
+              await send(.settings(.setRemoteControlError(nil)))
             } catch {
               logger.warning("Failed to start remote control server: \(error)")
+              await send(.settings(.setRemoteControlError(error.localizedDescription)))
             }
           }
         )
@@ -342,20 +344,23 @@ struct AppFeature {
         ]
         if remoteSettingsChanged {
           effects.append(
-            .run { _ in
+            .run { send in
               if remoteControlEnabled, !remoteControlPin.isEmpty {
                 if await remoteControlClient.isRunning() {
                   await remoteControlClient.stop()
                 }
                 do {
                   try await remoteControlClient.start(remoteControlPin, remoteControlPort, remoteControlName)
+                  await send(.settings(.setRemoteControlError(nil)))
                 } catch {
                   logger.warning("Failed to start remote control server: \(error)")
+                  await send(.settings(.setRemoteControlError(error.localizedDescription)))
                 }
               } else {
                 if await remoteControlClient.isRunning() {
                   await remoteControlClient.stop()
                 }
+                await send(.settings(.setRemoteControlError(nil)))
               }
             }
           )

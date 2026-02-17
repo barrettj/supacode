@@ -4,12 +4,11 @@ import ComposableArchitecture
 import CryptoKit
 import Foundation
 import Network
-import OSLog
 import SupacodeShared
 import Synchronization
 import UIKit
 
-private let logger = Logger(subsystem: "com.supacode.remote", category: "RemoteState")
+private let logger = RemoteLogger("RemoteState")
 
 enum RemoteStateUpdate: Equatable, Sendable {
   case connected(StateSnapshot)
@@ -234,6 +233,7 @@ private final class RemoteStateManager: Sendable {
 enum RemoteStateError: Error, Sendable, LocalizedError {
   case authFailed(String)
   case protocolMismatch(server: Int, client: Int)
+  case timeout
 
   var errorDescription: String? {
     switch self {
@@ -241,6 +241,8 @@ enum RemoteStateError: Error, Sendable, LocalizedError {
       return message
     case .protocolMismatch:
       return "This version of Supacode Remote is not compatible with the Mac app. Please update both apps."
+    case .timeout:
+      return "Connection timed out. Make sure the Mac is running and reachable on the network."
     }
   }
 }

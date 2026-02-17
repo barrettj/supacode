@@ -1,10 +1,9 @@
 // Created by Barrett Jacobsen
 
 import ComposableArchitecture
-import OSLog
 import SupacodeShared
 
-private let logger = Logger(subsystem: "com.supacode.remote", category: "RemoteApp")
+private let logger = RemoteLogger("RemoteApp")
 
 @Reducer
 struct RemoteAppFeature {

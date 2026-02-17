@@ -111,6 +111,15 @@ struct StateDeltaApplicationTests {
     #expect(state.worktreeStates["wt-1"]?.tabs.count == 1)
   }
 
+  @Test func tabRemovedCleansUpOrphanedState() {
+    var state = makeBaseState()
+    state.apply(.tabRemoved(worktreeID: "wt-1", tabID: "tab-1"))
+    let wState = state.worktreeStates["wt-1"]
+    #expect(wState?.tabs.isEmpty == true)
+    #expect(wState?.splitTrees["tab-1"] == nil)
+    #expect(wState?.focusedSurfaceByTab["tab-1"] == nil)
+  }
+
   @Test func tabUpdatedTitle() {
     var state = makeBaseState()
     let update = RemoteTabUpdate(title: "New Title")

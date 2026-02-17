@@ -70,6 +70,17 @@ struct ProtocolTests {
     #expect(decodedContent == content)
   }
 
+  @Test func messageWithWrongVersionThrows() throws {
+    // Manually craft JSON with version 99
+    let json = """
+      {"version":99,"type":"ping","payload":{}}
+      """
+    let data = Data(json.utf8)
+    #expect(throws: DecodingError.self) {
+      _ = try JSONDecoder().decode(RemoteMessage.self, from: data)
+    }
+  }
+
   // MARK: - Auth Messages
 
   @Test func authChallengeRoundTrip() throws {
