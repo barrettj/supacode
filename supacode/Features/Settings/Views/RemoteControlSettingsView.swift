@@ -25,6 +25,17 @@ struct RemoteControlSettingsView: View {
         }
 
         if store.remoteControlEnabled {
+          Section("Display Name") {
+            VStack(alignment: .leading) {
+              TextField("Name", text: $store.remoteControlName)
+                .help("Name shown to iOS devices when discovering this Mac")
+              Text("How this Mac appears to iOS devices on the network.")
+                .foregroundStyle(.secondary)
+                .font(.callout)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+          }
+
           Section("Security") {
             VStack(alignment: .leading) {
               HStack {

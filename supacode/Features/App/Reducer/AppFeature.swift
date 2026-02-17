@@ -112,7 +112,7 @@ struct AppFeature {
             let settings = settingsFile.global
             guard settings.remoteControlEnabled, !settings.remoteControlPin.isEmpty else { return }
             do {
-              try await remoteControlClient.start(settings.remoteControlPin, UInt16(settings.remoteControlPort))
+              try await remoteControlClient.start(settings.remoteControlPin, UInt16(settings.remoteControlPort), settings.remoteControlName)
             } catch {
               logger.warning("Failed to start remote control server: \(error)")
             }
@@ -281,6 +281,7 @@ struct AppFeature {
           )
         }
         let remoteControlEnabled = settings.remoteControlEnabled
+        let remoteControlName = settings.remoteControlName
         let remoteControlPin = settings.remoteControlPin
         let remoteControlPort = UInt16(settings.remoteControlPort)
         let remoteControlClient = remoteControlClient
@@ -319,7 +320,7 @@ struct AppFeature {
             if remoteControlEnabled, !remoteControlPin.isEmpty {
               if await !remoteControlClient.isRunning() {
                 do {
-                  try await remoteControlClient.start(remoteControlPin, remoteControlPort)
+                  try await remoteControlClient.start(remoteControlPin, remoteControlPort, remoteControlName)
                 } catch {
                   logger.warning("Failed to start remote control server: \(error)")
                 }

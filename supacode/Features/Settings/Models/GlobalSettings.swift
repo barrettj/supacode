@@ -1,3 +1,5 @@
+import Foundation
+
 nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
   var appearanceMode: AppearanceMode
   var defaultEditorID: String
@@ -14,6 +16,7 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
   var deleteBranchOnDeleteWorktree: Bool
   var automaticallyArchiveMergedWorktrees: Bool
   var remoteControlEnabled: Bool
+  var remoteControlName: String
   var remoteControlPin: String
   var remoteControlPort: Int
 
@@ -33,6 +36,7 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     deleteBranchOnDeleteWorktree: true,
     automaticallyArchiveMergedWorktrees: false,
     remoteControlEnabled: false,
+    remoteControlName: Host.current().localizedName ?? "My Mac",
     remoteControlPin: "",
     remoteControlPort: 7483
   )
@@ -53,6 +57,7 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     deleteBranchOnDeleteWorktree: Bool,
     automaticallyArchiveMergedWorktrees: Bool,
     remoteControlEnabled: Bool,
+    remoteControlName: String,
     remoteControlPin: String,
     remoteControlPort: Int
   ) {
@@ -71,6 +76,7 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     self.deleteBranchOnDeleteWorktree = deleteBranchOnDeleteWorktree
     self.automaticallyArchiveMergedWorktrees = automaticallyArchiveMergedWorktrees
     self.remoteControlEnabled = remoteControlEnabled
+    self.remoteControlName = remoteControlName
     self.remoteControlPin = remoteControlPin
     self.remoteControlPort = remoteControlPort
   }
@@ -116,6 +122,9 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     remoteControlEnabled =
       try container.decodeIfPresent(Bool.self, forKey: .remoteControlEnabled)
       ?? Self.default.remoteControlEnabled
+    remoteControlName =
+      try container.decodeIfPresent(String.self, forKey: .remoteControlName)
+      ?? Self.default.remoteControlName
     remoteControlPin =
       try container.decodeIfPresent(String.self, forKey: .remoteControlPin)
       ?? Self.default.remoteControlPin

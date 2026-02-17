@@ -20,6 +20,7 @@ struct SettingsFeature {
     var deleteBranchOnDeleteWorktree: Bool
     var automaticallyArchiveMergedWorktrees: Bool
     var remoteControlEnabled: Bool
+    var remoteControlName: String
     var remoteControlPin: String
     var remoteControlPort: Int
     var selection: SettingsSection? = .general
@@ -42,6 +43,7 @@ struct SettingsFeature {
       deleteBranchOnDeleteWorktree = settings.deleteBranchOnDeleteWorktree
       automaticallyArchiveMergedWorktrees = settings.automaticallyArchiveMergedWorktrees
       remoteControlEnabled = settings.remoteControlEnabled
+      remoteControlName = settings.remoteControlName
       remoteControlPin = settings.remoteControlPin
       remoteControlPort = settings.remoteControlPort
     }
@@ -63,6 +65,7 @@ struct SettingsFeature {
         deleteBranchOnDeleteWorktree: deleteBranchOnDeleteWorktree,
         automaticallyArchiveMergedWorktrees: automaticallyArchiveMergedWorktrees,
         remoteControlEnabled: remoteControlEnabled,
+        remoteControlName: remoteControlName,
         remoteControlPin: remoteControlPin,
         remoteControlPort: remoteControlPort
       )
@@ -128,6 +131,7 @@ struct SettingsFeature {
         state.deleteBranchOnDeleteWorktree = normalizedSettings.deleteBranchOnDeleteWorktree
         state.automaticallyArchiveMergedWorktrees = normalizedSettings.automaticallyArchiveMergedWorktrees
         state.remoteControlEnabled = normalizedSettings.remoteControlEnabled
+        state.remoteControlName = normalizedSettings.remoteControlName
         state.remoteControlPin = normalizedSettings.remoteControlPin
         state.remoteControlPort = normalizedSettings.remoteControlPort
         return .send(.delegate(.settingsChanged(normalizedSettings)))
