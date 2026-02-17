@@ -135,10 +135,30 @@ enum StateSerializer {
     pinnedWorktreeIDs: [Worktree.ID] = [],
     worktreeInfoByID: [Worktree.ID: WorktreeInfoEntry] = [:],
     worktreeOrderByRepository: [String: [Worktree.ID]] = [:],
-    archivedWorktreeIDs: Set<Worktree.ID> = []
+    archivedWorktreeIDs: Set<Worktree.ID> = [],
+    repositoryOrderIDs: [Repository.ID] = []
   ) -> StateSnapshot {
+    // Sort repositories to match mac sidebar order
+    let sortedRepositories: [Repository]
+    if repositoryOrderIDs.isEmpty {
+      sortedRepositories = repositories
+    } else {
+      let repoByID = Dictionary(uniqueKeysWithValues: repositories.map { ($0.id, $0) })
+      var ordered: [Repository] = []
+      var seen: Set<Repository.ID> = []
+      for id in repositoryOrderIDs {
+        if let repo = repoByID[id], seen.insert(id).inserted {
+          ordered.append(repo)
+        }
+      }
+      for repo in repositories where seen.insert(repo.id).inserted {
+        ordered.append(repo)
+      }
+      sortedRepositories = ordered
+    }
+
     var worktreeStates: [String: RemoteWorktreeState] = [:]
-    let allWorktrees = repositories.flatMap(\.worktrees)
+    let allWorktrees = sortedRepositories.flatMap(\.worktrees)
 
     for worktree in allWorktrees {
       let isPinned = pinnedWorktreeIDs.contains(worktree.id)
@@ -167,7 +187,7 @@ enum StateSerializer {
       }
     }
 
-    let orderedRepositories = repositories.map { repository in
+    let orderedRepositories = sortedRepositories.map { repository in
       serializeRepository(
         repository,
         pinnedWorktreeIDs: pinnedWorktreeIDs,

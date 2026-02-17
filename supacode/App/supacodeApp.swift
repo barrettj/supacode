@@ -183,6 +183,7 @@ struct SupacodeApp: App {
             worktreeInfoByID: store.repositories.worktreeInfoByID,
             worktreeOrderByRepository: store.repositories.worktreeOrderByRepository,
             archivedWorktreeIDs: store.repositories.archivedWorktreeIDSet,
+            repositoryOrderIDs: store.repositories.repositoryOrderIDs,
           )
           do {
             let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
