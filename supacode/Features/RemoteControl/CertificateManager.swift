@@ -41,6 +41,10 @@ enum CertificateManager {
     // Clean up any previous keychain
     cleanup()
 
+    // Save the current search list before creating (SecKeychainCreate adds to it automatically)
+    var originalSearchList: CFArray?
+    SecKeychainCopySearchList(&originalSearchList)
+
     // Create a temporary keychain file with a known password (no user interaction)
     let path = keychainPath
     var keychain: SecKeychain?
@@ -48,6 +52,11 @@ enum CertificateManager {
     var status = SecKeychainCreate(path, UInt32(password.utf8.count), password, false, nil, &keychain)
     guard status == errSecSuccess || status == errSecDuplicateKeychain, let kc = keychain else {
       throw CertificateError.keychainCreateFailed(status)
+    }
+
+    // Restore the original search list so macOS doesn't scan our keychain
+    if let original = originalSearchList {
+      SecKeychainSetSearchList(original)
     }
 
     // Disable auto-lock so the keychain never locks and prompts
