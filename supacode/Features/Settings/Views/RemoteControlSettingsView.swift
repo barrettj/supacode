@@ -55,7 +55,7 @@ struct RemoteControlSettingsView: View {
                 let digits = String(newValue.filter(\.isNumber).prefix(6))
                 let padded = String(repeating: "0", count: max(0, 6 - digits.count)) + digits
                 if padded != newValue {
-                  store.remoteControlPin = padded
+                  store.send(.set(\.remoteControlPin, padded))
                 }
               }
               Text("Set a 6-digit PIN that iOS devices must enter to connect.")
@@ -72,7 +72,7 @@ struct RemoteControlSettingsView: View {
                 .onChange(of: store.remoteControlPort) { _, newValue in
                   let clamped = min(max(newValue, 1024), 65535)
                   if clamped != newValue {
-                    store.remoteControlPort = clamped
+                    store.send(.set(\.remoteControlPort, clamped))
                   }
                 }
               Text("TCP port for the remote control server. Change requires restart of remote control.")

@@ -35,6 +35,8 @@ public struct RemoteState: Equatable, Sendable {
     case .tabRemoved(let worktreeID, let tabID):
       guard var wState = worktreeStates[worktreeID] else { return }
       wState.tabs.removeAll { $0.id == tabID }
+      wState.splitTrees.removeValue(forKey: tabID)
+      wState.focusedSurfaceByTab.removeValue(forKey: tabID)
       worktreeStates[worktreeID] = wState
 
     case .tabUpdated(let worktreeID, let tabID, let update):

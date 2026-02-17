@@ -16,10 +16,13 @@ final class RemoteControlSession: Identifiable {
   private(set) var isAuthenticated = false
   private var sessionToken: String?
 
-  var onAuthenticated: ((String) -> Void)?
+  /// Called with (deviceName, sessionToken) on successful authentication.
+  var onAuthenticated: ((String, String) -> Void)?
   var onDisconnected: (() -> Void)?
   var onCommandReceived: ((RemoteCommand) -> Void)?
   var onTerminalContentRequested: ((TerminalContentRequest) -> Void)?
+  /// Validates a session token for reconnection. Returns device name if valid.
+  var validateSessionToken: ((String) -> String?)?
 
   init(connection: NWConnection, pin: String) {
     self.connection = connection
@@ -137,9 +140,9 @@ final class RemoteControlSession: Identifiable {
       return
     }
 
-    // Check session token for reconnection
-    if let token = request.sessionToken, token == sessionToken {
-      authenticateSuccess(deviceName: request.deviceName)
+    // Check session token for reconnection via server-managed tokens
+    if let token = request.sessionToken, let deviceName = validateSessionToken?(token) {
+      authenticateSuccess(deviceName: deviceName)
       return
     }
 
@@ -162,17 +165,18 @@ final class RemoteControlSession: Identifiable {
   }
 
   private func authenticateSuccess(deviceName: String) {
-    isAuthenticated = true
     let token = UUID().uuidString
-    sessionToken = token
     let response = AuthResponse(success: true, sessionToken: token, error: nil)
     do {
       let message = try RemoteMessage(type: .authResponse, payload: response)
       send(message)
+      isAuthenticated = true
+      sessionToken = token
+      onAuthenticated?(deviceName, token)
     } catch {
       logger.warning("Failed to encode auth success response: \(error)")
+      disconnect()
     }
-    onAuthenticated?(deviceName)
   }
 
   private func sendAuthFailure(_ reason: String) {
@@ -183,5 +187,7 @@ final class RemoteControlSession: Identifiable {
     } catch {
       logger.warning("Failed to encode auth failure response: \(error)")
     }
+    // Close connection after failed auth to prevent socket leaks
+    disconnect()
   }
 }

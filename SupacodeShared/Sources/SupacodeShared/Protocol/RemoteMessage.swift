@@ -66,7 +66,15 @@ extension RemoteMessage: Codable {
 
   public init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    version = try container.decode(Int.self, forKey: .version)
+    let decodedVersion = try container.decode(Int.self, forKey: .version)
+    guard decodedVersion == Self.currentVersion else {
+      throw DecodingError.dataCorruptedError(
+        forKey: .version,
+        in: container,
+        debugDescription: "Unsupported protocol version \(decodedVersion), expected \(Self.currentVersion)"
+      )
+    }
+    version = decodedVersion
     type = try container.decode(MessageType.self, forKey: .type)
     id = try container.decodeIfPresent(UUID.self, forKey: .id)
     let fragment = try container.decode(JSONFragment.self, forKey: .payload)

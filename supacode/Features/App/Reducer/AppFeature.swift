@@ -112,7 +112,7 @@ struct AppFeature {
             let settings = settingsFile.global
             guard settings.remoteControlEnabled, !settings.remoteControlPin.isEmpty else { return }
             do {
-              try await remoteControlClient.start(settings.remoteControlPin, UInt16(settings.remoteControlPort), settings.remoteControlName)
+              try await remoteControlClient.start(settings.remoteControlPin, UInt16(clamping: settings.remoteControlPort), settings.remoteControlName)
             } catch {
               logger.warning("Failed to start remote control server: \(error)")
             }
@@ -219,6 +219,7 @@ struct AppFeature {
         let ids = Set(repositories.flatMap { $0.worktrees.map(\.id) })
         let recencyIDs = CommandPaletteFeature.recencyRetentionIDs(from: repositories)
         let worktrees = state.repositories.worktreesForInfoWatcher()
+        let remoteControlClient = remoteControlClient
         state.runScriptStatusByWorktreeID = state.runScriptStatusByWorktreeID.filter { ids.contains($0.key) }
         if case .repository(let repositoryID)? = state.settings.selection,
           !repositories.contains(where: { $0.id == repositoryID })
@@ -231,6 +232,9 @@ struct AppFeature {
             },
             .run { _ in
               await worktreeInfoWatcher.send(.setWorktrees(worktrees))
+            },
+            .run { _ in
+              await remoteControlClient.broadcastStateUpdate()
             }
           )
         }
@@ -241,6 +245,9 @@ struct AppFeature {
           },
           .run { _ in
             await worktreeInfoWatcher.send(.setWorktrees(worktrees))
+          },
+          .run { _ in
+            await remoteControlClient.broadcastStateUpdate()
           }
         )
 
@@ -290,12 +297,18 @@ struct AppFeature {
             defaultEditorID: settings.defaultEditorID
           )
         }
+        // Only restart remote control when remote-control-specific settings changed
+        let remoteSettingsChanged =
+          settings.remoteControlEnabled != state.settings.remoteControlEnabled
+          || settings.remoteControlPin != state.settings.remoteControlPin
+          || settings.remoteControlPort != state.settings.remoteControlPort
+          || settings.remoteControlName != state.settings.remoteControlName
         let remoteControlEnabled = settings.remoteControlEnabled
         let remoteControlName = settings.remoteControlName
         let remoteControlPin = settings.remoteControlPin
-        let remoteControlPort = UInt16(settings.remoteControlPort)
+        let remoteControlPort = UInt16(clamping: settings.remoteControlPort)
         let remoteControlClient = remoteControlClient
-        return .merge(
+        var effects: [Effect<Action>] = [
           .send(.repositories(.setGithubIntegrationEnabled(settings.githubIntegrationEnabled))),
           .send(
             .repositories(
@@ -326,23 +339,28 @@ struct AppFeature {
               .setPullRequestTrackingEnabled(settings.githubIntegrationEnabled)
             )
           },
-          .run { _ in
-            if remoteControlEnabled, !remoteControlPin.isEmpty {
-              if await remoteControlClient.isRunning() {
-                await remoteControlClient.stop()
-              }
-              do {
-                try await remoteControlClient.start(remoteControlPin, remoteControlPort, remoteControlName)
-              } catch {
-                logger.warning("Failed to start remote control server: \(error)")
-              }
-            } else {
-              if await remoteControlClient.isRunning() {
-                await remoteControlClient.stop()
+        ]
+        if remoteSettingsChanged {
+          effects.append(
+            .run { _ in
+              if remoteControlEnabled, !remoteControlPin.isEmpty {
+                if await remoteControlClient.isRunning() {
+                  await remoteControlClient.stop()
+                }
+                do {
+                  try await remoteControlClient.start(remoteControlPin, remoteControlPort, remoteControlName)
+                } catch {
+                  logger.warning("Failed to start remote control server: \(error)")
+                }
+              } else {
+                if await remoteControlClient.isRunning() {
+                  await remoteControlClient.stop()
+                }
               }
             }
-          }
-        )
+          )
+        }
+        return .merge(effects)
 
       case .openActionSelectionChanged(let action):
         state.openActionSelection = action

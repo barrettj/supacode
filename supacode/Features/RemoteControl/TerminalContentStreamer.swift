@@ -33,7 +33,11 @@ final class TerminalContentStreamer {
         if let content = self?.readContent(surfaceID: surfaceID) {
           send(content)
         }
-        try? await Task.sleep(for: .milliseconds(300))
+        do {
+          try await Task.sleep(for: .milliseconds(300))
+        } catch {
+          return
+        }
       }
     }
   }

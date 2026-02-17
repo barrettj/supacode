@@ -128,8 +128,8 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     remoteControlPin =
       try container.decodeIfPresent(String.self, forKey: .remoteControlPin)
       ?? Self.default.remoteControlPin
-    remoteControlPort =
-      try container.decodeIfPresent(Int.self, forKey: .remoteControlPort)
+    let rawPort = try container.decodeIfPresent(Int.self, forKey: .remoteControlPort)
       ?? Self.default.remoteControlPort
+    remoteControlPort = min(max(rawPort, 1024), 65535)
   }
 }

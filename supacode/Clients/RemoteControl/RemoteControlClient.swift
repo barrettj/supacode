@@ -1,6 +1,7 @@
 // Created by Barrett Jacobsen
 
 import ComposableArchitecture
+import Dependencies
 import Foundation
 import SupacodeShared
 
@@ -16,17 +17,13 @@ struct RemoteControlClient {
 
 extension RemoteControlClient: DependencyKey {
   static let liveValue = RemoteControlClient(
-    start: { _, _, _ in
-      assertionFailure("RemoteControlClient.start not configured")
-    },
-    stop: {
-      assertionFailure("RemoteControlClient.stop not configured")
-    },
-    isRunning: { false },
-    broadcastStateUpdate: {},
-    broadcastDelta: { _ in },
-    connectedDevices: { [] },
-    disconnect: { _ in },
+    start: unimplemented("RemoteControlClient.start"),
+    stop: unimplemented("RemoteControlClient.stop"),
+    isRunning: unimplemented("RemoteControlClient.isRunning", placeholder: false),
+    broadcastStateUpdate: unimplemented("RemoteControlClient.broadcastStateUpdate"),
+    broadcastDelta: unimplemented("RemoteControlClient.broadcastDelta"),
+    connectedDevices: unimplemented("RemoteControlClient.connectedDevices", placeholder: []),
+    disconnect: unimplemented("RemoteControlClient.disconnect"),
   )
 
   static let testValue = RemoteControlClient(

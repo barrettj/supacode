@@ -13,6 +13,8 @@ final class RemoteControlServer {
   private var listener: NWListener?
   private var sessions: [UUID: RemoteControlSession] = [:]
   private var pin: String = ""
+  /// Maps session tokens to device names, persisted across connections for token-based reconnection.
+  private var sessionTokens: [String: String] = [:]
 
   struct ConnectedDevice: Identifiable, Equatable {
     let id: UUID
@@ -47,8 +49,7 @@ final class RemoteControlServer {
     }
     newListener.start(queue: .main)
     listener = newListener
-    isRunning = true
-    logger.info("Remote control server started")
+    logger.info("Remote control server starting...")
   }
 
   func stop() {
@@ -59,6 +60,7 @@ final class RemoteControlServer {
     }
     sessions.removeAll()
     connectedDevices.removeAll()
+    sessionTokens.removeAll()
     isRunning = false
     logger.info("Remote control server stopped")
   }
@@ -87,6 +89,7 @@ final class RemoteControlServer {
   private func handleListenerStateChange(_ state: NWListener.State) {
     switch state {
     case .ready:
+      isRunning = true
       if let port = listener?.port {
         logger.info("Remote control server listening on port \(port)")
       }
@@ -102,7 +105,11 @@ final class RemoteControlServer {
     let session = RemoteControlSession(connection: connection, pin: pin)
     let id = session.id
     sessions[id] = session
-    session.onAuthenticated = { [weak self] deviceName in
+    session.validateSessionToken = { [weak self] token in
+      self?.sessionTokens[token]
+    }
+    session.onAuthenticated = { [weak self] deviceName, token in
+      self?.sessionTokens[token] = deviceName
       self?.connectedDevices.append(ConnectedDevice(
         id: id,
         deviceName: deviceName,

@@ -3,7 +3,10 @@
 import ComposableArchitecture
 import Foundation
 import Network
+import OSLog
 import SupacodeShared
+
+private let logger = Logger(subsystem: "com.supacode.remote", category: "Connection")
 
 @Reducer
 struct ConnectionFeature {
@@ -41,8 +44,12 @@ struct ConnectionFeature {
     }
 
     static func saveAll(_ credentials: [String: HostCredentials]) {
-      guard let data = try? JSONEncoder().encode(credentials) else { return }
-      UserDefaults.standard.set(data, forKey: storageKey)
+      do {
+        let data = try JSONEncoder().encode(credentials)
+        UserDefaults.standard.set(data, forKey: storageKey)
+      } catch {
+        logger.warning("Failed to save host credentials: \(error)")
+      }
     }
   }
 
@@ -170,7 +177,9 @@ struct ConnectionFeature {
         .cancellable(id: CancelID.connection)
 
       case .connectionResult(.success(let success)):
-        state.connectionStatus = .authenticating
+        // Don't set .authenticating here — the stateUpdates stream may have already
+        // yielded .connected(snapshot) before connect() returned, so setting
+        // .authenticating would regress the status.
         state.savedCredentials[success.hostID] = HostCredentials(
           pin: success.pin,
           sessionToken: success.sessionToken,
@@ -187,7 +196,9 @@ struct ConnectionFeature {
           state.pinEntry = ""
           state.isPINSheetPresented = true
         }
-        return .none
+        // Disconnect and cancel in-flight connection to prevent socket leaks
+        remoteStateClient.disconnect()
+        return .cancel(id: CancelID.connection)
 
       case .reconnect:
         guard let host = state.selectedHost,
