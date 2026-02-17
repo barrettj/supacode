@@ -42,9 +42,7 @@ struct SettingsFeature {
       deleteBranchOnDeleteWorktree = settings.deleteBranchOnDeleteWorktree
       automaticallyArchiveMergedWorktrees = settings.automaticallyArchiveMergedWorktrees
       remoteControlEnabled = settings.remoteControlEnabled
-      remoteControlPin = settings.remoteControlPin.isEmpty
-        ? String(format: "%06d", Int.random(in: 0...999_999))
-        : settings.remoteControlPin
+      remoteControlPin = settings.remoteControlPin
       remoteControlPort = settings.remoteControlPort
     }
 
@@ -97,16 +95,24 @@ struct SettingsFeature {
 
       case .settingsLoaded(let settings):
         let normalizedDefaultEditorID = OpenWorktreeAction.normalizedDefaultEditorID(settings.defaultEditorID)
-        let normalizedSettings: GlobalSettings
-        if normalizedDefaultEditorID == settings.defaultEditorID {
-          normalizedSettings = settings
-        } else {
-          var updatedSettings = settings
-          updatedSettings.defaultEditorID = normalizedDefaultEditorID
-          normalizedSettings = updatedSettings
+        var normalizedSettings = settings
+        var needsPersist = false
+
+        if normalizedDefaultEditorID != settings.defaultEditorID {
+          normalizedSettings.defaultEditorID = normalizedDefaultEditorID
+          needsPersist = true
+        }
+
+        if normalizedSettings.remoteControlPin.isEmpty {
+          normalizedSettings.remoteControlPin = String(format: "%06d", Int.random(in: 0...999_999))
+          needsPersist = true
+        }
+
+        if needsPersist {
           @Shared(.settingsFile) var settingsFile
           $settingsFile.withLock { $0.global = normalizedSettings }
         }
+
         state.appearanceMode = normalizedSettings.appearanceMode
         state.defaultEditorID = normalizedSettings.defaultEditorID
         state.confirmBeforeQuit = normalizedSettings.confirmBeforeQuit
