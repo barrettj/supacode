@@ -17,9 +17,11 @@ struct RemoteControlSettingsView: View {
               isOn: $store.remoteControlEnabled
             )
             .help("Allow iOS devices on your network to control Supacode")
-            Text("Allow iOS devices on your local network to control Supacode remotely.")
-              .foregroundStyle(.secondary)
-              .font(.callout)
+            Text(
+              "Allow iOS devices on your local network to control Supacode remotely. Data is sent unencrypted over your local network and protected by PIN authentication."
+            )
+            .foregroundStyle(.secondary)
+            .font(.callout)
           }
           .frame(maxWidth: .infinity, alignment: .leading)
         }

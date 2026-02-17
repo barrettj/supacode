@@ -24,8 +24,7 @@ final class RemoteControlServer {
     guard !isRunning else { return }
     self.pin = pin
 
-    let tlsOptions = try CertificateManager.tlsOptions()
-    let parameters = NWParameters(tls: tlsOptions)
+    let parameters = NWParameters.tcp
     parameters.allowLocalEndpointReuse = true
     let wsOptions = NWProtocolWebSocket.Options()
     parameters.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
@@ -61,7 +60,6 @@ final class RemoteControlServer {
     sessions.removeAll()
     connectedDevices.removeAll()
     isRunning = false
-    CertificateManager.cleanup()
     logger.info("Remote control server stopped")
   }
 
