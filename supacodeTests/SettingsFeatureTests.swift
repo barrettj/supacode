@@ -27,7 +27,7 @@ struct SettingsFeatureTests {
       automaticallyArchiveMergedWorktrees: true,
       remoteControlEnabled: false,
       remoteControlName: "My Mac",
-      remoteControlPin: "",
+      remoteControlPin: "123456",
       remoteControlPort: 7483
     )
     @Shared(.settingsFile) var settingsFile
@@ -54,6 +54,7 @@ struct SettingsFeatureTests {
       $0.deleteBranchOnDeleteWorktree = false
       $0.automaticallyArchiveMergedWorktrees = true
       $0.remoteControlName = "My Mac"
+      $0.remoteControlPin = "123456"
     }
     await store.receive(\.delegate.settingsChanged)
   }
@@ -76,7 +77,7 @@ struct SettingsFeatureTests {
       automaticallyArchiveMergedWorktrees: false,
       remoteControlEnabled: false,
       remoteControlName: "My Mac",
-      remoteControlPin: "",
+      remoteControlPin: "123456",
       remoteControlPort: 7483
     )
     @Shared(.settingsFile) var settingsFile
@@ -159,7 +160,7 @@ struct SettingsFeatureTests {
       automaticallyArchiveMergedWorktrees: true,
       remoteControlEnabled: false,
       remoteControlName: "My Mac",
-      remoteControlPin: "",
+      remoteControlPin: "123456",
       remoteControlPort: 7483
     )
 
@@ -179,6 +180,7 @@ struct SettingsFeatureTests {
       $0.deleteBranchOnDeleteWorktree = true
       $0.automaticallyArchiveMergedWorktrees = true
       $0.remoteControlName = "My Mac"
+      $0.remoteControlPin = "123456"
       $0.selection = selection
       $0.repositorySettings = RepositorySettingsFeature.State(
         rootURL: rootURL,
