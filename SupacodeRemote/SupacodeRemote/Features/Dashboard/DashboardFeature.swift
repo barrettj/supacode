@@ -16,6 +16,7 @@ struct DashboardFeature {
     case stateSnapshotReceived(StateSnapshot)
     case stateDeltaReceived(StateDelta)
     case selectWorktree(String)
+    case toggleRepositoryExpanded(String)
     case delegate(Delegate)
   }
 
@@ -41,6 +42,14 @@ struct DashboardFeature {
       case .stateDeltaReceived(let delta):
         state.remoteState?.apply(delta)
         return .none
+
+      case .toggleRepositoryExpanded(let repositoryID):
+        if state.remoteState?.expandedRepositoryIDs.contains(repositoryID) == true {
+          state.remoteState?.expandedRepositoryIDs.remove(repositoryID)
+        } else {
+          state.remoteState?.expandedRepositoryIDs.insert(repositoryID)
+        }
+        return .send(.delegate(.sendCommand(.toggleRepositoryExpanded(repositoryID: repositoryID))))
 
       case .selectWorktree(let worktreeID):
         state.selectedWorktreeID = worktreeID

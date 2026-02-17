@@ -43,17 +43,37 @@ struct DashboardView: View {
           }
         } else {
           ForEach(remoteState.repositories) { repo in
-            Section(repo.name) {
-              ForEach(repo.worktreeIDs, id: \.self) { worktreeID in
-                if let worktreeState = remoteState.worktreeStates[worktreeID] {
-                  WorktreeRowView(
-                    worktreeState: worktreeState,
-                    isSelected: store.selectedWorktreeID == worktreeID,
-                  )
-                  .tag(worktreeID)
-                  .accessibilityLabel(worktreeState.worktree.name)
+            let isExpanded = remoteState.expandedRepositoryIDs.contains(repo.id)
+            Section {
+              if isExpanded {
+                ForEach(repo.worktreeIDs, id: \.self) { worktreeID in
+                  if let worktreeState = remoteState.worktreeStates[worktreeID] {
+                    WorktreeRowView(
+                      worktreeState: worktreeState,
+                      isSelected: store.selectedWorktreeID == worktreeID,
+                    )
+                    .tag(worktreeID)
+                    .accessibilityLabel(worktreeState.worktree.name)
+                  }
                 }
               }
+            } header: {
+              Button {
+                store.send(.toggleRepositoryExpanded(repo.id))
+              } label: {
+                HStack {
+                  Text(repo.name)
+                  Spacer()
+                  Image(systemName: "chevron.right")
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .animation(.easeOut(duration: 0.2), value: isExpanded)
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+                }
+                .contentShape(Rectangle())
+              }
+              .buttonStyle(.plain)
+              .accessibilityLabel(isExpanded ? "Collapse \(repo.name)" : "Expand \(repo.name)")
             }
           }
         }
