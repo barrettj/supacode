@@ -7,14 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA000001AAAA000000000001 /* ComposableArchitecture in Frameworks */ = {
-			isa = PBXBuildFile;
-			productRef = AA000002AAAA000000000002 /* ComposableArchitecture */;
-		};
-		AA000003AAAA000000000003 /* SupacodeShared in Frameworks */ = {
-			isa = PBXBuildFile;
-			productRef = AA000004AAAA000000000004 /* SupacodeShared */;
-		};
+		AA000001AAAA000000000001 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = AA000002AAAA000000000002 /* ComposableArchitecture */; };
+		AA000003AAAA000000000003 /* SupacodeShared in Frameworks */ = {isa = PBXBuildFile; productRef = AA000004AAAA000000000004 /* SupacodeShared */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,20 +22,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AA000040AAAA000000000040 /* SupacodeRemote.app */ = {
-			isa = PBXFileReference;
-			explicitFileType = wrapper.application;
-			includeInIndex = 0;
-			path = SupacodeRemote.app;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		AA000041AAAA000000000041 /* SupacodeRemoteTests.xctest */ = {
-			isa = PBXFileReference;
-			explicitFileType = wrapper.cfbundle;
-			includeInIndex = 0;
-			path = SupacodeRemoteTests.xctest;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
+		AA000040AAAA000000000040 /* SupacodeRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SupacodeRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000041AAAA000000000041 /* SupacodeRemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SupacodeRemoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -90,7 +72,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		AA000060AAAA000000000060 /* top-level */ = {
+		AA000060AAAA000000000060 = {
 			isa = PBXGroup;
 			children = (
 				AA000080AAAA000000000080 /* SupacodeRemote */,
@@ -187,7 +169,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AABB0001AAAA000000000001 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
-				AABB0002AAAA000000000002 /* XCLocalSwiftPackageReference "SupacodeShared" */,
+				AABB0002AAAA000000000002 /* XCLocalSwiftPackageReference "../SupacodeShared" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA000061AAAA000000000061 /* Products */;
@@ -361,8 +343,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9L5RET2SZ3;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SupacodeRemote/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -370,7 +354,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.supacode.remote;
+				PRODUCT_BUNDLE_IDENTIFIER = TESTING.com.supacode.remote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -386,8 +370,10 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9L5RET2SZ3;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SupacodeRemote/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -395,7 +381,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.supacode.remote;
+				PRODUCT_BUNDLE_IDENTIFIER = TESTING.com.supacode.remote;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -443,15 +429,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AA000072AAAA000000000072 /* Build configuration list for PBXProject "SupacodeRemote" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AACC0001AAAA000000000001 /* Debug */,
-				AACC0002AAAA000000000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		AA000070AAAA000000000070 /* Build configuration list for PBXNativeTarget "SupacodeRemote" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -470,7 +447,23 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AA000072AAAA000000000072 /* Build configuration list for PBXProject "SupacodeRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AACC0001AAAA000000000001 /* Debug */,
+				AACC0002AAAA000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AABB0002AAAA000000000002 /* XCLocalSwiftPackageReference "../SupacodeShared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../SupacodeShared;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
 		AABB0001AAAA000000000001 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
@@ -483,13 +476,6 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		AABB0002AAAA000000000002 /* XCLocalSwiftPackageReference "SupacodeShared" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../SupacodeShared;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
 		AA000002AAAA000000000002 /* ComposableArchitecture */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -501,7 +487,6 @@
 			productName = SupacodeShared;
 		};
 /* End XCSwiftPackageProductDependency section */
-
 	};
 	rootObject = AA000020AAAA000000000020 /* Project object */;
 }
