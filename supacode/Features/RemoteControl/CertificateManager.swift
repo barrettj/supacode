@@ -37,16 +37,28 @@ enum CertificateManager {
     }
   }
 
+  /// Creates a `SecAccess` that trusts only the current application, preventing keychain dialogs.
+  private static func createSelfTrustedAccess() throws -> SecAccess {
+    var trustedApp: SecTrustedApplication?
+    var status = SecTrustedApplicationCreateFromPath(nil, &trustedApp)
+    guard status == errSecSuccess, let app = trustedApp else {
+      throw CertificateError.accessCreationFailed(status)
+    }
+    var access: SecAccess?
+    status = SecAccessCreate(identityLabel as CFString, [app] as CFArray, &access)
+    guard status == errSecSuccess, let result = access else {
+      throw CertificateError.accessCreationFailed(status)
+    }
+    return result
+  }
+
   private static func generateAndStoreIdentity() throws -> SecIdentity {
-    // 1. Generate P-256 private key
+    let access = try createSelfTrustedAccess()
+
+    // 1. Generate P-256 private key (in memory, not persistent via SecKeyCreateRandomKey)
     let keyAttributes: [String: Any] = [
       kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
       kSecAttrKeySizeInBits as String: 256,
-      kSecAttrLabel as String: identityLabel,
-      kSecPrivateKeyAttrs as String: [
-        kSecAttrIsPermanent as String: true,
-        kSecAttrLabel as String: identityLabel,
-      ],
     ]
 
     var error: Unmanaged<CFError>?
@@ -54,21 +66,35 @@ enum CertificateManager {
       throw CertificateError.keyGenerationFailed(error?.takeRetainedValue() as? Error)
     }
 
-    // 2. Create self-signed certificate
+    // 2. Store private key in keychain with self-trusted access (no dialog)
+    let keyAddQuery: [String: Any] = [
+      kSecClass as String: kSecClassKey,
+      kSecValueRef as String: privateKey,
+      kSecAttrLabel as String: identityLabel,
+      kSecAttrIsPermanent as String: true,
+      kSecAttrAccess as String: access,
+    ]
+    let keyStatus = SecItemAdd(keyAddQuery as CFDictionary, nil)
+    guard keyStatus == errSecSuccess || keyStatus == errSecDuplicateItem else {
+      throw CertificateError.keychainStoreFailed(keyStatus)
+    }
+
+    // 3. Create self-signed certificate
     let certificate = try createSelfSignedCertificate(privateKey: privateKey)
 
-    // 3. Store certificate in Keychain
+    // 4. Store certificate in keychain with self-trusted access
     let certAddQuery: [String: Any] = [
       kSecClass as String: kSecClassCertificate,
       kSecValueRef as String: certificate,
       kSecAttrLabel as String: identityLabel,
+      kSecAttrAccess as String: access,
     ]
     let certStatus = SecItemAdd(certAddQuery as CFDictionary, nil)
     guard certStatus == errSecSuccess || certStatus == errSecDuplicateItem else {
       throw CertificateError.keychainStoreFailed(certStatus)
     }
 
-    // 4. Load the identity (cert + key pair) back from Keychain
+    // 5. Load the identity (cert + key pair) back from keychain
     let query: [String: Any] = [
       kSecClass as String: kSecClassIdentity,
       kSecAttrLabel as String: identityLabel,
@@ -247,4 +273,5 @@ enum CertificateError: Error {
   case certificateCreationFailed
   case keychainStoreFailed(OSStatus)
   case identityLoadFailed
+  case accessCreationFailed(OSStatus)
 }
