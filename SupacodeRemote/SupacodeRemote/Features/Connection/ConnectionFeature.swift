@@ -49,7 +49,6 @@ struct ConnectionFeature {
 
   private enum CancelID {
     case discovery
-    case stateUpdates
     case connection
   }
 
@@ -87,21 +86,24 @@ struct ConnectionFeature {
         let pin = state.pinEntry
         let endpoint = host.endpoint
         return .run { send in
-          try await remoteStateClient.connect(endpoint, pin)
-          await send(.connectionResult(.success(())))
-        } catch: { error, send in
-          await send(.connectionResult(.failure(error)))
+          async let updates: Void = {
+            for await update in remoteStateClient.stateUpdates() {
+              await send(.stateUpdate(update))
+            }
+          }()
+          do {
+            try await remoteStateClient.connect(endpoint, pin)
+            await send(.connectionResult(.success(())))
+          } catch {
+            await send(.connectionResult(.failure(error)))
+          }
+          await updates
         }
         .cancellable(id: CancelID.connection)
 
       case .connectionResult(.success):
         state.connectionStatus = .authenticating
-        return .run { send in
-          for await update in remoteStateClient.stateUpdates() {
-            await send(.stateUpdate(update))
-          }
-        }
-        .cancellable(id: CancelID.stateUpdates)
+        return .none
 
       case .connectionResult(.failure(let error)):
         state.connectionStatus = .error(error.localizedDescription)
@@ -119,17 +121,14 @@ struct ConnectionFeature {
 
         case .disconnected(let reason):
           state.connectionStatus = .error(reason ?? "Disconnected")
-          return .cancel(id: CancelID.stateUpdates)
+          return .cancel(id: CancelID.connection)
         }
 
       case .disconnect:
         remoteStateClient.disconnect()
         state.connectionStatus = .disconnected
         state.selectedHost = nil
-        return .merge(
-          .cancel(id: CancelID.stateUpdates),
-          .cancel(id: CancelID.connection)
-        )
+        return .cancel(id: CancelID.connection)
 
       case .delegate:
         return .none

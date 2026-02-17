@@ -8,7 +8,12 @@ private let logger = SupaLogger("TerminalContentStreamer")
 
 @MainActor
 final class TerminalContentStreamer {
-  private var streamingTasks: [String: Task<Void, Never>] = [:]
+  private struct StreamKey: Hashable {
+    let sessionID: UUID
+    let surfaceID: String
+  }
+
+  private var streamingTasks: [StreamKey: Task<Void, Never>] = [:]
   private let terminalManager: WorktreeTerminalManager
 
   init(terminalManager: WorktreeTerminalManager) {
@@ -16,12 +21,14 @@ final class TerminalContentStreamer {
   }
 
   func startStreaming(
+    sessionID: UUID,
     surfaceID: String,
     send: @escaping @MainActor (TerminalContent) -> Void
   ) {
-    stopStreaming(surfaceID: surfaceID)
+    let key = StreamKey(sessionID: sessionID, surfaceID: surfaceID)
+    streamingTasks[key]?.cancel()
 
-    streamingTasks[surfaceID] = Task { @MainActor [weak self] in
+    streamingTasks[key] = Task { @MainActor [weak self] in
       while !Task.isCancelled {
         if let content = self?.readContent(surfaceID: surfaceID) {
           send(content)
@@ -31,9 +38,17 @@ final class TerminalContentStreamer {
     }
   }
 
-  func stopStreaming(surfaceID: String) {
-    streamingTasks[surfaceID]?.cancel()
-    streamingTasks.removeValue(forKey: surfaceID)
+  func stopStreaming(sessionID: UUID, surfaceID: String) {
+    let key = StreamKey(sessionID: sessionID, surfaceID: surfaceID)
+    streamingTasks[key]?.cancel()
+    streamingTasks.removeValue(forKey: key)
+  }
+
+  func stopAllStreaming(sessionID: UUID) {
+    for (key, task) in streamingTasks where key.sessionID == sessionID {
+      task.cancel()
+      streamingTasks.removeValue(forKey: key)
+    }
   }
 
   func stopAllStreaming() {

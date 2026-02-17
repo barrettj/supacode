@@ -200,6 +200,7 @@ struct SupacodeApp: App {
           server.connectedDevices
         },
         disconnect: { deviceID in
+          contentStreamer.stopAllStreaming(sessionID: deviceID)
           server.disconnect(deviceID: deviceID)
         },
       )
@@ -225,10 +226,24 @@ struct SupacodeApp: App {
     server.onCommandReceived = { _, command in
       commandRouter.route(command)
     }
+    server.onSessionAuthenticated = { sessionID in
+      guard let store = storeRef else { return }
+      let snapshot = StateSerializer.serializeSnapshot(
+        repositories: store.repositories.repositories.elements.map { $0 },
+        selectedWorktreeID: store.repositories.selectedWorktreeID,
+        terminalManager: terminalManager,
+      )
+      do {
+        let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
+        server.sendToSession(sessionID, message: message)
+      } catch {
+        logger.warning("Failed to send initial snapshot to session: \(error)")
+      }
+    }
     server.onTerminalContentRequested = { sessionID, request in
       switch request.action {
       case .startStreaming:
-        contentStreamer.startStreaming(surfaceID: request.surfaceID) { content in
+        contentStreamer.startStreaming(sessionID: sessionID, surfaceID: request.surfaceID) { content in
           do {
             let message = try RemoteMessage(type: .terminalContent, payload: content)
             server.sendToSession(sessionID, message: message)
@@ -237,7 +252,7 @@ struct SupacodeApp: App {
           }
         }
       case .stopStreaming:
-        contentStreamer.stopStreaming(surfaceID: request.surfaceID)
+        contentStreamer.stopStreaming(sessionID: sessionID, surfaceID: request.surfaceID)
       case .requestOnce:
         if let content = contentStreamer.readContentOnce(surfaceID: request.surfaceID) {
           do {

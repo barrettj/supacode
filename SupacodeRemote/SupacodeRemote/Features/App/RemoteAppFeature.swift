@@ -43,11 +43,21 @@ struct RemoteAppFeature {
       // MARK: - Connection delegates
       case .connection(.delegate(.connected(let snapshot))):
         state.isConnected = true
+        if let terminalView = state.terminalView,
+          let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
+        {
+          state.terminalView?.worktreeState = updatedState
+        }
         return .send(.dashboard(.stateSnapshotReceived(snapshot)))
 
       case .connection(.delegate(.stateUpdate(let update))):
         switch update {
         case .connected(let snapshot):
+          if let terminalView = state.terminalView,
+            let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
+          {
+            state.terminalView?.worktreeState = updatedState
+          }
           return .send(.dashboard(.stateSnapshotReceived(snapshot)))
 
         case .delta(let delta):

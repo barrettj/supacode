@@ -81,6 +81,7 @@ final class RemoteControlServer {
 
   var onCommandReceived: ((UUID, RemoteCommand) -> Void)?
   var onTerminalContentRequested: ((UUID, TerminalContentRequest) -> Void)?
+  var onSessionAuthenticated: ((UUID) -> Void)?
 
   private func handleListenerStateChange(_ state: NWListener.State) {
     switch state {
@@ -107,6 +108,7 @@ final class RemoteControlServer {
         connectedAt: Date(),
       ))
       logger.info("Remote device connected: \(deviceName)")
+      self?.onSessionAuthenticated?(id)
     }
     session.onDisconnected = { [weak self] in
       self?.sessions.removeValue(forKey: id)
