@@ -3,8 +3,11 @@
 import ComposableArchitecture
 import Foundation
 import Network
+import OSLog
 import SupacodeShared
 import Synchronization
+
+private let logger = Logger(subsystem: "com.supacode.remote", category: "WebSocket")
 
 struct WebSocketClient {
   var connect: @Sendable (NWEndpoint) async throws -> Void
@@ -115,7 +118,10 @@ private final class WebSocketManager: Sendable {
 
   func receive() -> AsyncStream<RemoteMessage> {
     let (stream, continuation) = AsyncStream.makeStream(of: RemoteMessage.self)
-    state.withLock { $0.continuation = continuation }
+    state.withLock { state in
+      state.continuation?.finish()
+      state.continuation = continuation
+    }
     receiveLoop()
     return stream
   }
@@ -154,8 +160,11 @@ private final class WebSocketManager: Sendable {
         return
       }
 
-      if let message = try? JSONDecoder().decode(RemoteMessage.self, from: content) {
+      do {
+        let message = try JSONDecoder().decode(RemoteMessage.self, from: content)
         self.state.withLock { $0.continuation?.yield(message) }
+      } catch {
+        logger.warning("Failed to decode WebSocket message: \(error)")
       }
       self.receiveLoop()
     }

@@ -4,9 +4,12 @@ import ComposableArchitecture
 import CryptoKit
 import Foundation
 import Network
+import OSLog
 import SupacodeShared
 import Synchronization
 import UIKit
+
+private let logger = Logger(subsystem: "com.supacode.remote", category: "RemoteState")
 
 enum RemoteStateUpdate: Equatable, Sendable {
   case connected(StateSnapshot)
@@ -75,10 +78,16 @@ private final class RemoteStateManager: Sendable {
 
     // Wait for auth challenge
     guard let challengeMessage = await iterator.next(),
-      challengeMessage.type == .authChallenge,
-      let challenge = try? challengeMessage.decode(AuthChallenge.self)
+      challengeMessage.type == .authChallenge
     else {
       throw RemoteStateError.authFailed("No auth challenge received")
+    }
+    let challenge: AuthChallenge
+    do {
+      challenge = try challengeMessage.decode(AuthChallenge.self)
+    } catch {
+      logger.warning("Failed to decode auth challenge: \(error)")
+      throw RemoteStateError.authFailed("Failed to decode auth challenge: \(error.localizedDescription)")
     }
 
     // Compute SHA256 hash of (pin + nonce)
@@ -93,10 +102,16 @@ private final class RemoteStateManager: Sendable {
 
     // Wait for auth response
     guard let responseMessage = await iterator.next(),
-      responseMessage.type == .authResponse,
-      let authResponse = try? responseMessage.decode(AuthResponse.self)
+      responseMessage.type == .authResponse
     else {
       throw RemoteStateError.authFailed("No auth response received")
+    }
+    let authResponse: AuthResponse
+    do {
+      authResponse = try responseMessage.decode(AuthResponse.self)
+    } catch {
+      logger.warning("Failed to decode auth response: \(error)")
+      throw RemoteStateError.authFailed("Failed to decode auth response: \(error.localizedDescription)")
     }
 
     guard authResponse.success else {
@@ -105,10 +120,16 @@ private final class RemoteStateManager: Sendable {
 
     // Wait for initial state snapshot
     guard let snapshotMessage = await iterator.next(),
-      snapshotMessage.type == .stateSnapshot,
-      let snapshot = try? snapshotMessage.decode(StateSnapshot.self)
+      snapshotMessage.type == .stateSnapshot
     else {
       throw RemoteStateError.authFailed("No state snapshot received")
+    }
+    let snapshot: StateSnapshot
+    do {
+      snapshot = try snapshotMessage.decode(StateSnapshot.self)
+    } catch {
+      logger.warning("Failed to decode state snapshot: \(error)")
+      throw RemoteStateError.authFailed("Failed to decode state snapshot: \(error.localizedDescription)")
     }
 
     // Yield connected state and start message loop
@@ -130,7 +151,10 @@ private final class RemoteStateManager: Sendable {
 
   func stateUpdates() -> AsyncStream<RemoteStateUpdate> {
     let (stream, continuation) = AsyncStream.makeStream(of: RemoteStateUpdate.self)
-    state.withLock { $0.continuation = continuation }
+    state.withLock { state in
+      state.continuation?.finish()
+      state.continuation = continuation
+    }
     return stream
   }
 
@@ -156,21 +180,34 @@ private final class RemoteStateManager: Sendable {
   private func handleMessage(_ message: RemoteMessage) {
     switch message.type {
     case .stateSnapshot:
-      if let snapshot = try? message.decode(StateSnapshot.self) {
+      do {
+        let snapshot = try message.decode(StateSnapshot.self)
         state.withLock { $0.continuation?.yield(.connected(snapshot)) }
+      } catch {
+        logger.warning("Failed to decode state snapshot: \(error)")
       }
     case .stateDelta:
-      if let delta = try? message.decode(StateDelta.self) {
+      do {
+        let delta = try message.decode(StateDelta.self)
         state.withLock { $0.continuation?.yield(.delta(delta)) }
+      } catch {
+        logger.warning("Failed to decode state delta: \(error)")
       }
     case .terminalContent:
-      if let content = try? message.decode(TerminalContent.self) {
+      do {
+        let content = try message.decode(TerminalContent.self)
         state.withLock { $0.continuation?.yield(.terminalContent(content)) }
+      } catch {
+        logger.warning("Failed to decode terminal content: \(error)")
       }
     case .ping:
       let pong = RemoteMessage(type: .pong)
       Task { [weak self] in
-        try? await self?.webSocketClient.send(pong)
+        do {
+          try await self?.webSocketClient.send(pong)
+        } catch {
+          logger.warning("Failed to send pong: \(error)")
+        }
       }
     default:
       break

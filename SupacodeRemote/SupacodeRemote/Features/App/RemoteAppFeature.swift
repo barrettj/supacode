@@ -1,7 +1,10 @@
 // Created by Barrett Jacobsen
 
 import ComposableArchitecture
+import OSLog
 import SupacodeShared
+
+private let logger = Logger(subsystem: "com.supacode.remote", category: "RemoteApp")
 
 @Reducer
 struct RemoteAppFeature {
@@ -74,6 +77,8 @@ struct RemoteAppFeature {
       case .dashboard(.delegate(.sendCommand(let command))):
         return .run { _ in
           try await remoteStateClient.send(command)
+        } catch: { error, _ in
+          logger.warning("Failed to send dashboard command: \(error)")
         }
 
       case .dashboard(.delegate(.worktreeSelected(let worktreeID))):
@@ -89,6 +94,8 @@ struct RemoteAppFeature {
       case .terminalView(.delegate(.sendCommand(let command))):
         return .run { _ in
           try await remoteStateClient.send(command)
+        } catch: { error, _ in
+          logger.warning("Failed to send terminal command: \(error)")
         }
 
       case .terminalView(.delegate(.requestTerminalContent(let surfaceID, let action))):
@@ -96,6 +103,8 @@ struct RemoteAppFeature {
           try await remoteStateClient.requestTerminalContent(
             TerminalContentRequest(surfaceID: surfaceID, action: action)
           )
+        } catch: { error, _ in
+          logger.warning("Failed to request terminal content: \(error)")
         }
 
       // MARK: - Dismiss terminal
