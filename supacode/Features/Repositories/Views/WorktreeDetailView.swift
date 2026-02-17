@@ -229,6 +229,10 @@ struct WorktreeDetailView: View {
         .padding(.horizontal)
       }
 
+      ToolbarItem {
+        ConnectedDevicesToolbarButton()
+      }
+
       if !toolbarState.notificationGroups.isEmpty {
         ToolbarSpacer(.fixed)
         ToolbarItemGroup {

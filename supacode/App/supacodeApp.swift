@@ -336,6 +336,7 @@ struct SupacodeApp: App {
         ContentView(store: store, terminalManager: terminalManager)
           .environment(ghosttyShortcuts)
           .environment(commandKeyObserver)
+          .environment(remoteControlServer)
       }
       .preferredColorScheme(store.settings.appearanceMode.colorScheme)
     }
