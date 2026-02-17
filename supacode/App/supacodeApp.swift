@@ -277,6 +277,9 @@ struct SupacodeApp: App {
         commandRouter.route(command)
       }
     }
+    server.onSessionDisconnected = { sessionID in
+      contentStreamer.stopAllStreaming(sessionID: sessionID)
+    }
     server.onSessionAuthenticated = { sessionID in
       guard let store = storeRef else { return }
       @Shared(.appStorage("sidebarCollapsedRepositoryIDs")) var collapsedRepoIDs: [Repository.ID] = []

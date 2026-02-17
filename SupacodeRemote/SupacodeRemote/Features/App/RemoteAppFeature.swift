@@ -89,21 +89,12 @@ struct RemoteAppFeature {
 
       // MARK: - Connection delegates
       case .connection(.delegate(.connected(let snapshot))):
+        let wasResyncing = state.dashboard.isResyncing
         state.isConnected = true
         state.dashboard.isResyncing = false
-        if let terminalView = state.terminalView,
-          let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
-        {
-          state.terminalView?.worktreeState = updatedState
-        }
-        return .send(.dashboard(.stateSnapshotReceived(snapshot)))
-          .merge(with: .cancel(id: CancelID.resyncTimeout))
 
-      case .connection(.delegate(.stateUpdate(let update))):
-        switch update {
-        case .connected(let snapshot):
-          state.dashboard.isResyncing = false
-          // Update terminal to match current selection from Mac
+        if wasResyncing {
+          // Resync: sync selection from Mac
           if let selectedID = snapshot.selectedWorktreeID,
             let worktreeState = snapshot.worktreeStates[selectedID]
           {
@@ -119,8 +110,22 @@ struct RemoteAppFeature {
           } else {
             state.terminalView = nil
           }
-          return .send(.dashboard(.stateSnapshotReceived(snapshot)))
-            .merge(with: .cancel(id: CancelID.resyncTimeout))
+        } else {
+          // Fresh connect: preserve current terminal view
+          if let terminalView = state.terminalView,
+            let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
+          {
+            state.terminalView?.worktreeState = updatedState
+          }
+        }
+        return .send(.dashboard(.stateSnapshotReceived(snapshot)))
+          .merge(with: .cancel(id: CancelID.resyncTimeout))
+
+      case .connection(.delegate(.stateUpdate(let update))):
+        switch update {
+        case .connected:
+          // Handled by .connection(.delegate(.connected)) above
+          return .none
 
         case .delta(let delta):
           state.dashboard.remoteState?.apply(delta)
@@ -205,7 +210,10 @@ struct RemoteAppFeature {
         state.terminalView = nil
         state.dashboard.remoteState = nil
         state.dashboard.selectedWorktreeID = nil
-        return .send(.connection(.disconnect))
+        return .merge(
+          .send(.connection(.disconnect)),
+          .cancel(id: CancelID.resyncTimeout),
+        )
 
       // Pass-through for child actions
       case .connection, .dashboard, .terminalView:

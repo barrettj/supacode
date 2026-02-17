@@ -105,20 +105,24 @@ struct RemoteAppFeatureTests {
     }
   }
 
-  // MARK: - State Update Snapshots
+  // MARK: - Resync Selection Sync
 
-  @Test func stateUpdateSnapshotSyncsTerminalToMacSelection() async {
+  @Test func resyncConnectedSyncsTerminalToMacSelection() async {
     let worktreeState = Self.makeWorktreeState()
     let snapshot = Self.makeSnapshot(
       selectedWorktreeID: "wt-1",
       worktreeStates: ["wt-1": worktreeState],
     )
 
-    let store = TestStore(initialState: RemoteAppFeature.State()) {
+    var state = RemoteAppFeature.State()
+    state.dashboard.isResyncing = true
+
+    let store = TestStore(initialState: state) {
       RemoteAppFeature()
     }
 
-    await store.send(.connection(.delegate(.stateUpdate(.connected(snapshot))))) {
+    await store.send(.connection(.delegate(.connected(snapshot)))) {
+      $0.isConnected = true
       $0.dashboard.isResyncing = false
       $0.terminalView = TerminalViewFeature.State(
         worktreeID: "wt-1",
@@ -131,9 +135,10 @@ struct RemoteAppFeatureTests {
     }
   }
 
-  @Test func stateUpdateSnapshotWithNoSelectionClearsTerminal() async {
+  @Test func resyncConnectedWithNoSelectionClearsTerminal() async {
     let worktreeState = Self.makeWorktreeState()
     var state = RemoteAppFeature.State()
+    state.dashboard.isResyncing = true
     state.terminalView = TerminalViewFeature.State(
       worktreeID: "wt-1",
       worktreeState: worktreeState,
@@ -149,7 +154,8 @@ struct RemoteAppFeatureTests {
       selectedWorktreeID: nil,
       worktreeStates: [:],
     )
-    await store.send(.connection(.delegate(.stateUpdate(.connected(snapshot))))) {
+    await store.send(.connection(.delegate(.connected(snapshot)))) {
+      $0.isConnected = true
       $0.dashboard.isResyncing = false
       $0.terminalView = nil
     }

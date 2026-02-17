@@ -68,6 +68,12 @@ struct RemoteControlSettingsView: View {
             VStack(alignment: .leading) {
               TextField("Port", value: $store.remoteControlPort, format: .number.grouping(.never))
                 .help("TCP port for the remote control server (default: 7483)")
+                .onChange(of: store.remoteControlPort) { _, newValue in
+                  let clamped = min(max(newValue, 1024), 65535)
+                  if clamped != newValue {
+                    store.remoteControlPort = clamped
+                  }
+                }
               Text("TCP port for the remote control server. Change requires restart of remote control.")
                 .foregroundStyle(.secondary)
                 .font(.callout)
