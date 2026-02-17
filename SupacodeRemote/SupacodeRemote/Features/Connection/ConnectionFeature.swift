@@ -31,6 +31,7 @@ struct ConnectionFeature {
     case hostsUpdated([DiscoveredHost])
     case selectHost(DiscoveredHost)
     case connectWithPIN
+    case connectToManualHost
     case connectionResult(Result<Void, Error>)
     case disconnect
     case stateUpdate(RemoteStateUpdate)
@@ -75,6 +76,37 @@ struct ConnectionFeature {
 
       case .selectHost(let host):
         state.selectedHost = host
+        state.pinEntry = ""
+        state.isPINSheetPresented = true
+        state.connectionStatus = .disconnected
+        return .none
+
+      case .connectToManualHost:
+        let input = state.manualHostEntry.trimmingCharacters(in: .whitespaces)
+        guard !input.isEmpty else { return .none }
+
+        // Parse host:port or just host (default port 7483)
+        let host: String
+        let port: UInt16
+        if let colonIndex = input.lastIndex(of: ":"),
+          let portNumber = UInt16(input[input.index(after: colonIndex)...])
+        {
+          host = String(input[..<colonIndex])
+          port = portNumber
+        } else {
+          host = input
+          port = 7483
+        }
+
+        let endpoint = NWEndpoint.hostPort(
+          host: NWEndpoint.Host(host),
+          port: NWEndpoint.Port(rawValue: port)!
+        )
+        state.selectedHost = DiscoveredHost(
+          id: "manual-\(host):\(port)",
+          name: host,
+          endpoint: endpoint,
+        )
         state.pinEntry = ""
         state.isPINSheetPresented = true
         state.connectionStatus = .disconnected
