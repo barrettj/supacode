@@ -34,4 +34,10 @@ public enum RemoteCommand: Codable, Sendable, Equatable {
   // Run scripts
   case runScript(worktreeID: String, script: String)
   case stopRunScript(worktreeID: String)
+
+  // Resync
+  case requestResync
+
+  // Repository collapse/expand
+  case toggleRepositoryExpanded(repositoryID: String)
 }

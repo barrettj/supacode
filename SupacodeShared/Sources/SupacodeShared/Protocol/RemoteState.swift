@@ -4,11 +4,13 @@ public struct RemoteState: Equatable, Sendable {
   public var repositories: [RemoteRepository]
   public var selectedWorktreeID: String?
   public var worktreeStates: [String: RemoteWorktreeState]
+  public var expandedRepositoryIDs: Set<String>
 
   public init(snapshot: StateSnapshot) {
     self.repositories = snapshot.repositories
     self.selectedWorktreeID = snapshot.selectedWorktreeID
     self.worktreeStates = snapshot.worktreeStates
+    self.expandedRepositoryIDs = snapshot.expandedRepositoryIDs
   }
 
   public mutating func apply(_ delta: StateDelta) {
@@ -113,6 +115,13 @@ public struct RemoteState: Equatable, Sendable {
       guard var wState = worktreeStates[worktreeID] else { return }
       wState.isRunScriptRunning = isRunning
       worktreeStates[worktreeID] = wState
+
+    case .repositoryExpandedChanged(let repositoryID, let isExpanded):
+      if isExpanded {
+        expandedRepositoryIDs.insert(repositoryID)
+      } else {
+        expandedRepositoryIDs.remove(repositoryID)
+      }
     }
   }
 }

@@ -17,6 +17,7 @@ public enum StateDelta: Codable, Sendable, Equatable {
   case notificationsCleared(worktreeID: String)
   case taskStatusChanged(worktreeID: String, status: RemoteTaskStatus)
   case runScriptStatusChanged(worktreeID: String, isRunning: Bool)
+  case repositoryExpandedChanged(repositoryID: String, isExpanded: Bool)
 }
 
 public struct RemoteTabUpdate: Codable, Sendable, Equatable {

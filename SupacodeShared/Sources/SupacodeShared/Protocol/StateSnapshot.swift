@@ -4,15 +4,18 @@ public struct StateSnapshot: Codable, Sendable, Equatable {
   public let repositories: [RemoteRepository]
   public let selectedWorktreeID: String?
   public let worktreeStates: [String: RemoteWorktreeState]
+  public let expandedRepositoryIDs: Set<String>
 
   public init(
     repositories: [RemoteRepository],
     selectedWorktreeID: String?,
-    worktreeStates: [String: RemoteWorktreeState]
+    worktreeStates: [String: RemoteWorktreeState],
+    expandedRepositoryIDs: Set<String> = []
   ) {
     self.repositories = repositories
     self.selectedWorktreeID = selectedWorktreeID
     self.worktreeStates = worktreeStates
+    self.expandedRepositoryIDs = expandedRepositoryIDs
   }
 }
 

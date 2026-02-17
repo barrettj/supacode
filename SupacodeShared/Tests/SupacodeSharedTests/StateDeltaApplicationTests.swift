@@ -267,6 +267,15 @@ struct StateDeltaApplicationTests {
     #expect(state.worktreeStates["wt-1"]?.isRunScriptRunning == false)
   }
 
+  @Test func repositoryExpandedChanged() {
+    var state = makeBaseState()
+    state.expandedRepositoryIDs = Set(state.repositories.map(\.id))
+    state.apply(.repositoryExpandedChanged(repositoryID: "repo-1", isExpanded: false))
+    #expect(!state.expandedRepositoryIDs.contains("repo-1"))
+    state.apply(.repositoryExpandedChanged(repositoryID: "repo-1", isExpanded: true))
+    #expect(state.expandedRepositoryIDs.contains("repo-1"))
+  }
+
   @Test func multipleDeltas() {
     var state = makeBaseState()
     let newTab = RemoteTab(id: "tab-2", title: "Terminal 2", icon: nil, isDirty: false)
