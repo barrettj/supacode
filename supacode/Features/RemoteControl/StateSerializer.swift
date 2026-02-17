@@ -18,7 +18,7 @@ enum StateSerializer {
       id: worktree.id,
       name: worktree.name,
       detail: worktree.detail,
-      repositoryID: worktree.repositoryRootURL.path(percentEncoded: false),
+      repositoryID: worktree.repositoryRootURL.standardizedFileURL.path(percentEncoded: false),
     )
   }
 

@@ -16,12 +16,12 @@ struct WorktreeRowView: View {
         Spacer()
 
         Circle()
-          .fill(worktreeState.taskStatus == .running ? Color.orange : Color.green)
+          .fill(worktreeState.taskStatus == .running ? .tint : .secondary)
           .frame(width: 8, height: 8)
 
         if worktreeState.hasUnseenNotifications {
           Image(systemName: "bell.badge.fill")
-            .foregroundStyle(.red)
+            .foregroundStyle(.secondary)
             .font(.caption)
         }
       }

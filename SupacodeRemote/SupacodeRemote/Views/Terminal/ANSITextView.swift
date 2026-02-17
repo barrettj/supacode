@@ -13,7 +13,7 @@ struct ANSITextView: View {
         LazyVStack(alignment: .leading, spacing: 0) {
           ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
             Text(ANSIParser.parse(line))
-              .font(.system(.body, design: .monospaced))
+              .font(.body.monospaced())
               .id(index)
               .accessibilityLabel(ANSIParser.stripANSI(line))
           }
@@ -23,6 +23,6 @@ struct ANSITextView: View {
         .accessibilityLabel("Terminal output")
       }
     }
-    .background(Color.black)
+    .background(.background)
   }
 }

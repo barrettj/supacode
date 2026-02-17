@@ -80,6 +80,7 @@ public struct RemoteState: Equatable, Sendable {
     case .notificationReceived(let worktreeID, let notification):
       guard var wState = worktreeStates[worktreeID] else { return }
       wState.notifications.append(notification)
+      wState.hasUnseenNotifications = true
       worktreeStates[worktreeID] = wState
 
     case .notificationRead(let worktreeID, let notificationID):
@@ -94,11 +95,13 @@ public struct RemoteState: Equatable, Sendable {
           isRead: true,
         )
       }
+      wState.hasUnseenNotifications = wState.notifications.contains { !$0.isRead }
       worktreeStates[worktreeID] = wState
 
     case .notificationsCleared(let worktreeID):
       guard var wState = worktreeStates[worktreeID] else { return }
       wState.notifications.removeAll()
+      wState.hasUnseenNotifications = false
       worktreeStates[worktreeID] = wState
 
     case .taskStatusChanged(let worktreeID, let status):

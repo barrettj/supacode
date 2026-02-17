@@ -46,7 +46,9 @@ struct VoiceInputView: View {
     .padding()
     .task {
       SFSpeechRecognizer.requestAuthorization { status in
-        authorizationStatus = status
+        Task { @MainActor in
+          authorizationStatus = status
+        }
       }
     }
   }
@@ -70,16 +72,18 @@ struct VoiceInputView: View {
     guard let recognitionRequest else { return }
     recognitionRequest.shouldReportPartialResults = true
 
-    recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
-      if let result {
-        currentText = result.bestTranscription.formattedString
-        if result.isFinal {
-          onTranscribed(currentText)
-          currentText = ""
+    recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [self] result, error in
+      Task { @MainActor in
+        if let result {
+          currentText = result.bestTranscription.formattedString
+          if result.isFinal {
+            onTranscribed(currentText)
+            currentText = ""
+          }
         }
-      }
-      if error != nil {
-        stopRecording()
+        if error != nil {
+          stopRecording()
+        }
       }
     }
 
