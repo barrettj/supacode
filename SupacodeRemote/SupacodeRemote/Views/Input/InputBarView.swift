@@ -27,6 +27,8 @@ struct InputBarView: View {
             .font(.title2)
         }
         .disabled(store.inputText.isEmpty || store.selectedSurfaceID == nil)
+        .accessibilityLabel("Send command")
+        .help("Send command to terminal")
 
         Menu {
           ForEach(TerminalViewFeature.State.InputMode.allCases, id: \.self) { mode in
@@ -39,6 +41,8 @@ struct InputBarView: View {
         } label: {
           Image(systemName: store.inputMode.icon)
         }
+        .accessibilityLabel("Input mode: \(store.inputMode.label)")
+        .help("Switch input mode")
       }
       .padding(.horizontal)
       .padding(.vertical, 8)

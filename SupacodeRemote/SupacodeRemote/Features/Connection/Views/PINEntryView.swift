@@ -21,6 +21,7 @@ struct PINEntryView: View {
           .font(.title.monospaced())
           .multilineTextAlignment(.center)
           .focused($isPINFocused)
+          .accessibilityLabel("PIN code")
 
         switch store.connectionStatus {
         case .connecting, .authenticating:
@@ -41,6 +42,7 @@ struct PINEntryView: View {
           store.connectionStatus == .connecting
             || store.connectionStatus == .authenticating
         )
+        .accessibilityLabel("Connect to host")
       }
       .padding()
       .navigationTitle("Enter PIN")

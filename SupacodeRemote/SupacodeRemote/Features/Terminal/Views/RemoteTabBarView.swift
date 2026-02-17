@@ -13,7 +13,7 @@ struct RemoteTabBarView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 4) {
-        ForEach(tabs) { tab in
+        ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
           Button { onSelect(tab.id) } label: {
             HStack(spacing: 4) {
               if let icon = tab.icon {
@@ -28,6 +28,8 @@ struct RemoteTabBarView: View {
             .clipShape(Capsule())
           }
           .buttonStyle(.plain)
+          .accessibilityLabel("\(tab.title), tab \(index + 1) of \(tabs.count)")
+          .help(tab.title)
           .contextMenu {
             Button("Close Tab", role: .destructive) { onClose(tab.id) }
           }
@@ -39,6 +41,8 @@ struct RemoteTabBarView: View {
             .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("New tab")
+        .help("Create new tab")
       }
       .padding(.horizontal)
     }

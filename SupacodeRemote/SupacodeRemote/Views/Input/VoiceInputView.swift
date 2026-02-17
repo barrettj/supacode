@@ -36,6 +36,8 @@ struct VoiceInputView: View {
           .frame(width: 60, height: 60)
           .background(Circle().fill(.ultraThinMaterial))
       }
+      .accessibilityLabel(isRecording ? "Stop recording" : "Start voice input")
+      .help(isRecording ? "Stop recording" : "Start voice input")
 
       Text(statusText)
         .font(.caption)

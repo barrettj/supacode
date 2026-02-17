@@ -44,6 +44,7 @@ struct TerminalView: View {
 
       InputBarView(store: store)
     }
+    .navigationTitle(store.worktreeState.worktree.name)
     .task { store.send(.task) }
   }
 }

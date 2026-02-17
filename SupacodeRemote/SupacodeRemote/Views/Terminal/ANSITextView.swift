@@ -15,9 +15,12 @@ struct ANSITextView: View {
             Text(ANSIParser.parse(line))
               .font(.system(.body, design: .monospaced))
               .id(index)
+              .accessibilityLabel(ANSIParser.stripANSI(line))
           }
         }
         .padding(.horizontal, 8)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Terminal output")
       }
     }
     .background(Color.black)

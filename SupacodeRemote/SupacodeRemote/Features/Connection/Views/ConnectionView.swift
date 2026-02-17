@@ -23,6 +23,7 @@ struct ConnectionView: View {
                 .foregroundStyle(.secondary)
             }
           }
+          .accessibilityLabel("Connect to \(host.name)")
         }
         if store.discoveredHosts.isEmpty {
           ContentUnavailableView {

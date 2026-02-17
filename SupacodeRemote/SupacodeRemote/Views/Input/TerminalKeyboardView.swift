@@ -26,8 +26,11 @@ struct TerminalKeyboardView: View {
       // Modifier toggles
       HStack(spacing: 8) {
         Toggle("Ctrl", isOn: $ctrlActive).toggleStyle(.button).font(.caption)
+          .accessibilityLabel("Control modifier")
         Toggle("Alt", isOn: $altActive).toggleStyle(.button).font(.caption)
+          .accessibilityLabel("Alt modifier")
         Toggle("Shift", isOn: $shiftActive).toggleStyle(.button).font(.caption)
+          .accessibilityLabel("Shift modifier")
       }
 
       // Arrow keys + nav keys
@@ -94,5 +97,7 @@ struct TerminalKeyboardView: View {
     }
     .buttonStyle(.bordered)
     .font(.caption.monospaced())
+    .accessibilityLabel("Send \(label)")
+    .help("Send \(label) key")
   }
 }

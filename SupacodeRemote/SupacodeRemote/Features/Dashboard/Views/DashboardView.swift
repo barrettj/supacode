@@ -47,12 +47,13 @@ struct DashboardView: View {
                   isSelected: store.selectedWorktreeID == worktreeID,
                 )
                 .tag(worktreeID)
+                .accessibilityLabel(worktreeState.worktree.name)
               }
             }
           }
         }
       }
     }
-    .navigationTitle("Worktrees")
+    .navigationTitle("Supacode Remote")
   }
 }

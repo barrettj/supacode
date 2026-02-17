@@ -68,6 +68,7 @@ private struct InteractiveSplitNodeView: View {
           }
       }
       .buttonStyle(.plain)
+      .accessibilityLabel(splitPaneLabel(for: surfaceID))
       .contextMenu {
         Button("Split Right", systemImage: "rectangle.split.1x2") { onSplitHorizontal() }
         Button("Split Down", systemImage: "rectangle.split.2x1") { onSplitVertical() }
@@ -113,5 +114,12 @@ private struct InteractiveSplitNodeView: View {
         .layoutPriority(1 - split.ratio)
       }
     }
+  }
+
+  private func splitPaneLabel(for surfaceID: String) -> String {
+    if let surface = surfaces[surfaceID] {
+      return surface.title ?? surface.pwd ?? "Terminal pane"
+    }
+    return "Terminal pane"
   }
 }

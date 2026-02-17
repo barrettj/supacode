@@ -41,5 +41,17 @@ struct WorktreeRowView: View {
       }
     }
     .padding(.vertical, 4)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(accessibilityDescription)
+  }
+
+  private var accessibilityDescription: String {
+    var parts = [worktreeState.worktree.name]
+    parts.append(worktreeState.taskStatus == .running ? "Task running" : "Task idle")
+    if worktreeState.hasUnseenNotifications {
+      parts.append("Has notifications")
+    }
+    parts.append("\(worktreeState.tabs.count) tab\(worktreeState.tabs.count == 1 ? "" : "s")")
+    return parts.joined(separator: ", ")
   }
 }

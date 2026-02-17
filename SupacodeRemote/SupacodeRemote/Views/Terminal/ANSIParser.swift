@@ -39,6 +39,31 @@ enum ANSIParser {
     return result
   }
 
+  /// Strips ANSI escape sequences from a string, returning plain text.
+  static func stripANSI(_ input: String) -> String {
+    var result = ""
+    var index = input.startIndex
+
+    while index < input.endIndex {
+      if input[index] == "\u{1b}",
+        input.index(after: index) < input.endIndex,
+        input[input.index(after: index)] == "["
+      {
+        let seqStart = input.index(index, offsetBy: 2)
+        if let (_, endIndex) = parseCSISequence(input, from: seqStart) {
+          index = input.index(after: endIndex)
+        } else {
+          result.append(input[index])
+          index = input.index(after: index)
+        }
+      } else {
+        result.append(input[index])
+        index = input.index(after: index)
+      }
+    }
+    return result
+  }
+
   // MARK: - CSI Sequence Parsing
 
   /// Parses a CSI parameter sequence starting after `\e[`, returning the semicolon-separated
