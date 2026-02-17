@@ -52,9 +52,10 @@ struct RemoteControlSettingsView: View {
                   .toggleStyle(.checkbox)
               }
               .onChange(of: store.remoteControlPin) { _, newValue in
-                let filtered = String(newValue.filter(\.isNumber).prefix(6))
-                if filtered != newValue {
-                  store.remoteControlPin = filtered
+                let digits = String(newValue.filter(\.isNumber).prefix(6))
+                let padded = String(repeating: "0", count: max(0, 6 - digits.count)) + digits
+                if padded != newValue {
+                  store.remoteControlPin = padded
                 }
               }
               Text("Set a 6-digit PIN that iOS devices must enter to connect.")
