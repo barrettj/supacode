@@ -33,6 +33,26 @@ struct ConnectionView: View {
           }
         }
       }
+      Section("Manual Connection") {
+        HStack {
+          TextField("Hostname or IP", text: $store.manualHostEntry)
+            .textContentType(.URL)
+            .keyboardType(.URL)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+            .accessibilityLabel("Hostname or IP address")
+          Button {
+            store.send(.connectToManualHost)
+          } label: {
+            Image(systemName: "arrow.right.circle.fill")
+          }
+          .disabled(store.manualHostEntry.trimmingCharacters(in: .whitespaces).isEmpty)
+          .accessibilityLabel("Connect to manual host")
+        }
+        Text("Enter a hostname or IP for Tailscale/remote connections. Port 7483 is used by default.")
+          .foregroundStyle(.secondary)
+          .font(.caption)
+      }
     }
     .navigationTitle("Connect")
     .sheet(isPresented: $store.isPINSheetPresented) {
