@@ -5,7 +5,7 @@ import Foundation
 import SupacodeShared
 
 struct RemoteControlClient {
-  var start: @MainActor @Sendable (String) throws -> Void
+  var start: @MainActor @Sendable (String, UInt16) throws -> Void
   var stop: @MainActor @Sendable () -> Void
   var isRunning: @MainActor @Sendable () -> Bool
   var broadcastStateUpdate: @MainActor @Sendable () -> Void
@@ -16,7 +16,7 @@ struct RemoteControlClient {
 
 extension RemoteControlClient: DependencyKey {
   static let liveValue = RemoteControlClient(
-    start: { _ in
+    start: { _, _ in
       assertionFailure("RemoteControlClient.start not configured")
     },
     stop: {
@@ -30,7 +30,7 @@ extension RemoteControlClient: DependencyKey {
   )
 
   static let testValue = RemoteControlClient(
-    start: { _ in },
+    start: { _, _ in },
     stop: {},
     isRunning: { false },
     broadcastStateUpdate: {},

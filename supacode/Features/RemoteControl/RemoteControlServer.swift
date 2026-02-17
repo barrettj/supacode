@@ -21,7 +21,7 @@ final class RemoteControlServer {
     let connectedAt: Date
   }
 
-  func start(pin: String) throws {
+  func start(pin: String, port: UInt16 = 7483) throws {
     guard !isRunning else { return }
     self.pin = pin
 
@@ -30,7 +30,7 @@ final class RemoteControlServer {
     let wsOptions = NWProtocolWebSocket.Options()
     parameters.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
 
-    let newListener = try NWListener(using: parameters, on: .any)
+    let newListener = try NWListener(using: parameters, on: NWEndpoint.Port(rawValue: port) ?? 7483)
     newListener.service = NWListener.Service(
       name: "Supacode",
       type: "_supacode._tcp"

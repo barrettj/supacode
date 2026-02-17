@@ -161,8 +161,8 @@ struct SupacodeApp: App {
         }
       )
       values.remoteControlClient = RemoteControlClient(
-        start: { pin in
-          try server.start(pin: pin)
+        start: { pin, port in
+          try server.start(pin: pin, port: port)
         },
         stop: {
           server.stop()
