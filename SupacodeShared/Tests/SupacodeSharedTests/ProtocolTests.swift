@@ -41,7 +41,8 @@ struct ProtocolTests {
     #expect(decoded.version == 1)
     #expect(decoded.type == .ping)
     #expect(decoded.id == id)
-    #expect(decoded.payload == Data())
+    // Empty payload round-trips through inline JSON as "{}" rather than empty Data
+    #expect(decoded.payload == Data("{}".utf8))
   }
 
   @Test func messageEnvelopeCommand() throws {
