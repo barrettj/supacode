@@ -8,11 +8,12 @@ private let logger = SupaLogger("CertificateManager")
 
 enum CertificateManager {
   private static let identityLabel = "com.supacode.remote-control.identity"
+  private static let keychainPassword = "supacode-ephemeral"
+  private static var temporaryKeychain: SecKeychain?
 
   /// Returns TLS options configured with a fresh self-signed identity.
   static func tlsOptions() throws -> NWProtocolTLS.Options {
-    deleteExistingItems()
-    let identity = try generateAndStoreIdentity()
+    let identity = try generateIdentityInTemporaryKeychain()
     let options = NWProtocolTLS.Options()
     let secIdentity = sec_identity_create(identity)!
     sec_protocol_options_set_local_identity(options.securityProtocolOptions, secIdentity)
@@ -20,45 +21,51 @@ enum CertificateManager {
     return options
   }
 
-  /// Removes ephemeral keychain items created for TLS.
+  /// Removes the temporary keychain file.
   static func cleanup() {
-    deleteExistingItems()
+    if let keychain = temporaryKeychain {
+      SecKeychainDelete(keychain)
+      temporaryKeychain = nil
+    }
+    try? FileManager.default.removeItem(atPath: keychainPath)
   }
 
   // MARK: - Private
 
-  private static func deleteExistingItems() {
-    let classes: [CFString] = [kSecClassKey, kSecClassCertificate, kSecClassIdentity]
-    for secClass in classes {
-      SecItemDelete([
-        kSecClass as String: secClass,
-        kSecAttrLabel as String: identityLabel,
-      ] as CFDictionary)
-    }
+  private static var keychainPath: String {
+    let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    return cacheDir.appendingPathComponent("supacode-tls.keychain-db").path
   }
 
-  /// Creates a `SecAccess` that trusts only the current application, preventing keychain dialogs.
-  private static func createSelfTrustedAccess() throws -> SecAccess {
-    var trustedApp: SecTrustedApplication?
-    var status = SecTrustedApplicationCreateFromPath(nil, &trustedApp)
-    guard status == errSecSuccess, let app = trustedApp else {
-      throw CertificateError.accessCreationFailed(status)
-    }
-    var access: SecAccess?
-    status = SecAccessCreate(identityLabel as CFString, [app] as CFArray, &access)
-    guard status == errSecSuccess, let result = access else {
-      throw CertificateError.accessCreationFailed(status)
-    }
-    return result
-  }
+  private static func generateIdentityInTemporaryKeychain() throws -> SecIdentity {
+    // Clean up any previous keychain
+    cleanup()
 
-  private static func generateAndStoreIdentity() throws -> SecIdentity {
-    let access = try createSelfTrustedAccess()
+    // Create a temporary keychain file with a known password (no user interaction)
+    let path = keychainPath
+    var keychain: SecKeychain?
+    let password = keychainPassword
+    var status = SecKeychainCreate(path, UInt32(password.utf8.count), password, false, nil, &keychain)
+    guard status == errSecSuccess || status == errSecDuplicateKeychain, let kc = keychain else {
+      throw CertificateError.keychainCreateFailed(status)
+    }
 
-    // 1. Generate P-256 private key (in memory, not persistent via SecKeyCreateRandomKey)
+    // Disable auto-lock so the keychain never locks and prompts
+    var settings = SecKeychainSettings(version: UInt32(SEC_KEYCHAIN_SETTINGS_VERS1), lockOnSleep: false, useLockInterval: false, lockInterval: 0)
+    SecKeychainSetSettings(kc, &settings)
+
+    temporaryKeychain = kc
+
+    // 1. Generate P-256 private key in the temporary keychain
     let keyAttributes: [String: Any] = [
       kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
       kSecAttrKeySizeInBits as String: 256,
+      kSecAttrLabel as String: identityLabel,
+      kSecUseKeychain as String: kc,
+      kSecPrivateKeyAttrs as String: [
+        kSecAttrIsPermanent as String: true,
+        kSecAttrLabel as String: identityLabel,
+      ],
     ]
 
     var error: Unmanaged<CFError>?
@@ -66,42 +73,31 @@ enum CertificateManager {
       throw CertificateError.keyGenerationFailed(error?.takeRetainedValue() as? Error)
     }
 
-    // 2. Store private key in keychain with self-trusted access (no dialog)
-    let keyAddQuery: [String: Any] = [
-      kSecClass as String: kSecClassKey,
-      kSecValueRef as String: privateKey,
-      kSecAttrLabel as String: identityLabel,
-      kSecAttrIsPermanent as String: true,
-      kSecAttrAccess as String: access,
-    ]
-    let keyStatus = SecItemAdd(keyAddQuery as CFDictionary, nil)
-    guard keyStatus == errSecSuccess || keyStatus == errSecDuplicateItem else {
-      throw CertificateError.keychainStoreFailed(keyStatus)
-    }
-
-    // 3. Create self-signed certificate
+    // 2. Create self-signed certificate
     let certificate = try createSelfSignedCertificate(privateKey: privateKey)
 
-    // 4. Store certificate in keychain with self-trusted access
+    // 3. Store certificate in the temporary keychain
     let certAddQuery: [String: Any] = [
       kSecClass as String: kSecClassCertificate,
       kSecValueRef as String: certificate,
       kSecAttrLabel as String: identityLabel,
-      kSecAttrAccess as String: access,
+      kSecUseKeychain as String: kc,
     ]
     let certStatus = SecItemAdd(certAddQuery as CFDictionary, nil)
     guard certStatus == errSecSuccess || certStatus == errSecDuplicateItem else {
       throw CertificateError.keychainStoreFailed(certStatus)
     }
 
-    // 5. Load the identity (cert + key pair) back from keychain
+    // 4. Load the identity (cert + key pair) from the temporary keychain
+    let searchList = [kc] as CFArray
     let query: [String: Any] = [
       kSecClass as String: kSecClassIdentity,
       kSecAttrLabel as String: identityLabel,
+      kSecMatchSearchList as String: searchList,
       kSecReturnRef as String: true,
     ]
     var result: CFTypeRef?
-    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    status = SecItemCopyMatching(query as CFDictionary, &result)
     guard status == errSecSuccess, let identity = result else {
       throw CertificateError.identityLoadFailed
     }
@@ -273,5 +269,5 @@ enum CertificateError: Error {
   case certificateCreationFailed
   case keychainStoreFailed(OSStatus)
   case identityLoadFailed
-  case accessCreationFailed(OSStatus)
+  case keychainCreateFailed(OSStatus)
 }
