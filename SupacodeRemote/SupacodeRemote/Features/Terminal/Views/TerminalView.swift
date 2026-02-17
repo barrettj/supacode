@@ -47,23 +47,3 @@ struct TerminalView: View {
     .task { store.send(.task) }
   }
 }
-
-private struct InputBarView: View {
-  @Bindable var store: StoreOf<TerminalViewFeature>
-
-  var body: some View {
-    HStack(spacing: 8) {
-      TextField("Input", text: $store.inputText)
-        .textFieldStyle(.roundedBorder)
-        .font(.body.monospaced())
-        .onSubmit { store.send(.sendInput) }
-
-      Button { store.send(.sendInput) } label: {
-        Image(systemName: "return")
-      }
-      .disabled(store.inputText.isEmpty || store.selectedSurfaceID == nil)
-    }
-    .padding(.horizontal)
-    .padding(.vertical, 8)
-  }
-}
