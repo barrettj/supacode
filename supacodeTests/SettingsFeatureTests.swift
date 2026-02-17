@@ -26,6 +26,7 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: false,
       automaticallyArchiveMergedWorktrees: true,
       remoteControlEnabled: false,
+      remoteControlName: "My Mac",
       remoteControlPin: "",
       remoteControlPort: 7483
     )
@@ -52,6 +53,7 @@ struct SettingsFeatureTests {
       $0.githubIntegrationEnabled = true
       $0.deleteBranchOnDeleteWorktree = false
       $0.automaticallyArchiveMergedWorktrees = true
+      $0.remoteControlName = "My Mac"
     }
     await store.receive(\.delegate.settingsChanged)
   }
@@ -73,6 +75,7 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: true,
       automaticallyArchiveMergedWorktrees: false,
       remoteControlEnabled: false,
+      remoteControlName: "My Mac",
       remoteControlPin: "",
       remoteControlPort: 7483
     )
@@ -102,6 +105,7 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: initialSettings.deleteBranchOnDeleteWorktree,
       automaticallyArchiveMergedWorktrees: initialSettings.automaticallyArchiveMergedWorktrees,
       remoteControlEnabled: initialSettings.remoteControlEnabled,
+      remoteControlName: initialSettings.remoteControlName,
       remoteControlPin: initialSettings.remoteControlPin,
       remoteControlPort: initialSettings.remoteControlPort
     )
@@ -154,6 +158,7 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: true,
       automaticallyArchiveMergedWorktrees: true,
       remoteControlEnabled: false,
+      remoteControlName: "My Mac",
       remoteControlPin: "",
       remoteControlPort: 7483
     )
@@ -173,6 +178,7 @@ struct SettingsFeatureTests {
       $0.githubIntegrationEnabled = true
       $0.deleteBranchOnDeleteWorktree = true
       $0.automaticallyArchiveMergedWorktrees = true
+      $0.remoteControlName = "My Mac"
       $0.selection = selection
       $0.repositorySettings = RepositorySettingsFeature.State(
         rootURL: rootURL,
