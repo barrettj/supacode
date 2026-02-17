@@ -103,7 +103,12 @@ struct ConnectionFeature {
 
       case .selectHost(let host):
         state.selectedHost = host
-        state.pinEntry = state.savedCredentials[host.id]?.pin ?? ""
+        if let saved = state.savedCredentials[host.id] {
+          state.pinEntry = saved.pin
+          state.connectionStatus = .disconnected
+          return .send(.connectWithPIN)
+        }
+        state.pinEntry = ""
         state.isPINSheetPresented = true
         state.connectionStatus = .disconnected
         return .none
@@ -174,6 +179,13 @@ struct ConnectionFeature {
 
       case .connectionResult(.failure(let error)):
         state.connectionStatus = .error(error.localizedDescription)
+        // If we auto-connected (PIN sheet not shown), clear saved credentials and show PIN sheet
+        if !state.isPINSheetPresented, let host = state.selectedHost {
+          state.savedCredentials.removeValue(forKey: host.id)
+          HostCredentials.saveAll(state.savedCredentials)
+          state.pinEntry = ""
+          state.isPINSheetPresented = true
+        }
         return .none
 
       case .stateUpdate(let update):

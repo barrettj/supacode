@@ -149,6 +149,8 @@ struct AppFeature {
           state.selectedRunScript = ""
           state.runScriptDraft = ""
           state.isRunScriptPromptPresented = false
+          let remoteControlClient = remoteControlClient
+          let selectionDelta = StateDelta.selectedWorktreeChanged(worktreeID: nil)
           var effects: [Effect<Action>] = [
             .run { _ in
               await terminalClient.send(.setSelectedWorktreeID(nil))
@@ -158,6 +160,9 @@ struct AppFeature {
             },
             .run { _ in
               await worktreeInfoWatcher.send(.setWorktrees(worktreesForWatcher))
+            },
+            .run { _ in
+              await remoteControlClient.broadcastDelta(selectionDelta)
             },
           ]
           if !state.repositories.isShowingArchivedWorktrees {
@@ -176,6 +181,8 @@ struct AppFeature {
         state.isRunScriptPromptPresented = false
         @Shared(.repositorySettings(rootURL)) var repositorySettings
         let settings = repositorySettings
+        let remoteControlClient = remoteControlClient
+        let selectionDelta = StateDelta.selectedWorktreeChanged(worktreeID: worktree.id)
         return .merge(
           .run { _ in
             await repositoryPersistence.saveLastFocusedWorktreeID(lastFocusedWorktreeID)
@@ -188,6 +195,9 @@ struct AppFeature {
           },
           .run { _ in
             await worktreeInfoWatcher.send(.setWorktrees(worktreesForWatcher))
+          },
+          .run { _ in
+            await remoteControlClient.broadcastDelta(selectionDelta)
           },
           .send(.worktreeSettingsLoaded(settings, worktreeID: worktreeID))
         )

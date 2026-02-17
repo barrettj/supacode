@@ -9,6 +9,7 @@ struct DashboardFeature {
   struct State: Equatable {
     var remoteState: RemoteState?
     var selectedWorktreeID: String?
+    var isResyncing: Bool = false
   }
 
   enum Action {

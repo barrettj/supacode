@@ -181,6 +181,8 @@ struct SupacodeApp: App {
             terminalManager: terminalManager,
             pinnedWorktreeIDs: store.repositories.pinnedWorktreeIDs,
             worktreeInfoByID: store.repositories.worktreeInfoByID,
+            worktreeOrderByRepository: store.repositories.worktreeOrderByRepository,
+            archivedWorktreeIDs: store.repositories.archivedWorktreeIDSet,
           )
           do {
             let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
@@ -236,6 +238,8 @@ struct SupacodeApp: App {
         terminalManager: terminalManager,
         pinnedWorktreeIDs: store.repositories.pinnedWorktreeIDs,
         worktreeInfoByID: store.repositories.worktreeInfoByID,
+        worktreeOrderByRepository: store.repositories.worktreeOrderByRepository,
+        archivedWorktreeIDs: store.repositories.archivedWorktreeIDSet,
       )
       do {
         let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)

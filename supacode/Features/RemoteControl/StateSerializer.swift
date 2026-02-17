@@ -133,16 +133,18 @@ enum StateSerializer {
     selectedWorktreeID: Worktree.ID?,
     terminalManager: WorktreeTerminalManager,
     pinnedWorktreeIDs: [Worktree.ID] = [],
-    worktreeInfoByID: [Worktree.ID: WorktreeInfoEntry] = [:]
+    worktreeInfoByID: [Worktree.ID: WorktreeInfoEntry] = [:],
+    worktreeOrderByRepository: [String: [Worktree.ID]] = [:],
+    archivedWorktreeIDs: Set<Worktree.ID> = []
   ) -> StateSnapshot {
     var worktreeStates: [String: RemoteWorktreeState] = [:]
     let allWorktrees = repositories.flatMap(\.worktrees)
 
     for worktree in allWorktrees {
+      let isPinned = pinnedWorktreeIDs.contains(worktree.id)
+      let isMain = worktree.workingDirectory.standardizedFileURL
+        == worktree.repositoryRootURL.standardizedFileURL
       if let state = terminalManager.stateIfExists(for: worktree.id) {
-        let isPinned = pinnedWorktreeIDs.contains(worktree.id)
-        let isMain = worktree.workingDirectory.standardizedFileURL
-          == worktree.repositoryRootURL.standardizedFileURL
         worktreeStates[worktree.id] = serializeWorktreeState(
           state,
           worktree: worktree,
@@ -150,13 +152,94 @@ enum StateSerializer {
           isMainWorktree: isMain,
           info: worktreeInfoByID[worktree.id],
         )
+      } else {
+        worktreeStates[worktree.id] = RemoteWorktreeState(
+          worktree: serialize(worktree, isPinned: isPinned, isMainWorktree: isMain, info: worktreeInfoByID[worktree.id]),
+          tabs: [],
+          selectedTabID: nil,
+          splitTrees: [:],
+          focusedSurfaceByTab: [:],
+          notifications: [],
+          taskStatus: .idle,
+          isRunScriptRunning: false,
+          hasUnseenNotifications: false,
+        )
       }
     }
 
+    let orderedRepositories = repositories.map { repository in
+      serializeRepository(
+        repository,
+        pinnedWorktreeIDs: pinnedWorktreeIDs,
+        worktreeOrderByRepository: worktreeOrderByRepository,
+        archivedWorktreeIDs: archivedWorktreeIDs,
+      )
+    }
+
     return StateSnapshot(
-      repositories: repositories.map { serialize($0) },
+      repositories: orderedRepositories,
       selectedWorktreeID: selectedWorktreeID,
       worktreeStates: worktreeStates,
+    )
+  }
+
+  private static func serializeRepository(
+    _ repository: Repository,
+    pinnedWorktreeIDs: [Worktree.ID],
+    worktreeOrderByRepository: [String: [Worktree.ID]],
+    archivedWorktreeIDs: Set<Worktree.ID>
+  ) -> RemoteRepository {
+    let pinnedSet = Set(pinnedWorktreeIDs)
+
+    // Main worktree first
+    var ordered: [Worktree.ID] = []
+    if let mainWorktree = repository.worktrees.first(where: {
+      $0.workingDirectory.standardizedFileURL == $0.repositoryRootURL.standardizedFileURL
+    }) {
+      if !archivedWorktreeIDs.contains(mainWorktree.id) {
+        ordered.append(mainWorktree.id)
+      }
+    }
+
+    // Pinned worktrees (in pinned order)
+    let mainID = ordered.first
+    let worktreeIDSet = Set(repository.worktrees.map(\.id))
+    for id in pinnedWorktreeIDs {
+      if !archivedWorktreeIDs.contains(id),
+        worktreeIDSet.contains(id),
+        id != mainID
+      {
+        ordered.append(id)
+      }
+    }
+
+    // Unpinned worktrees (using custom order)
+    let customOrder = worktreeOrderByRepository[repository.id] ?? []
+    let available = repository.worktrees.filter { worktree in
+      worktree.id != mainID
+        && !pinnedSet.contains(worktree.id)
+        && !archivedWorktreeIDs.contains(worktree.id)
+    }
+    let availableIDs = Set(available.map(\.id))
+    let orderedIDSet = Set(customOrder)
+    var seen: Set<Worktree.ID> = []
+    // Worktrees not in custom order come first
+    for worktree in available where !orderedIDSet.contains(worktree.id) {
+      if seen.insert(worktree.id).inserted {
+        ordered.append(worktree.id)
+      }
+    }
+    // Then worktrees in custom order
+    for id in customOrder {
+      if availableIDs.contains(id), seen.insert(id).inserted {
+        ordered.append(id)
+      }
+    }
+
+    return RemoteRepository(
+      id: repository.id,
+      name: repository.name,
+      worktreeIDs: ordered,
     )
   }
 }

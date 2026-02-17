@@ -6,8 +6,10 @@ import SwiftUI
 struct ContentView: View {
   let store: StoreOf<RemoteAppFeature>
   @Environment(\.horizontalSizeClass) private var sizeClass
+  @Environment(\.scenePhase) private var scenePhase
 
   var body: some View {
+    Group {
     if store.isConnected {
       if sizeClass == .regular {
         // iPad: Dashboard with terminal in detail pane
@@ -60,6 +62,12 @@ struct ContentView: View {
       }
     } else {
       ConnectionView(store: store.scope(state: \.connection, action: \.connection))
+    }
+    }
+    .onChange(of: scenePhase) { _, newPhase in
+      if newPhase == .active {
+        store.send(.appBecameActive)
+      }
     }
   }
 }

@@ -18,6 +18,7 @@ struct RemoteAppFeature {
 
   enum Action {
     case appLaunched
+    case appBecameActive
     case connection(ConnectionFeature.Action)
     case dashboard(DashboardFeature.Action)
     case terminalView(TerminalViewFeature.Action)
@@ -40,9 +41,16 @@ struct RemoteAppFeature {
       case .appLaunched:
         return .none
 
+      case .appBecameActive:
+        if state.isConnected {
+          state.dashboard.isResyncing = true
+        }
+        return .none
+
       // MARK: - Connection delegates
       case .connection(.delegate(.connected(let snapshot))):
         state.isConnected = true
+        state.dashboard.isResyncing = false
         if let terminalView = state.terminalView,
           let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
         {
@@ -53,6 +61,7 @@ struct RemoteAppFeature {
       case .connection(.delegate(.stateUpdate(let update))):
         switch update {
         case .connected(let snapshot):
+          state.dashboard.isResyncing = false
           if let terminalView = state.terminalView,
             let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
           {
@@ -62,6 +71,20 @@ struct RemoteAppFeature {
 
         case .delta(let delta):
           state.dashboard.remoteState?.apply(delta)
+          // Sync selection from mac
+          if case .selectedWorktreeChanged(let worktreeID) = delta {
+            state.dashboard.selectedWorktreeID = worktreeID
+            if let worktreeID,
+              let worktreeState = state.dashboard.remoteState?.worktreeStates[worktreeID]
+            {
+              state.terminalView = TerminalViewFeature.State(
+                worktreeID: worktreeID,
+                worktreeState: worktreeState,
+              )
+            } else {
+              state.terminalView = nil
+            }
+          }
           if let terminalView = state.terminalView,
             let updatedState = state.dashboard.remoteState?.worktreeStates[terminalView.worktreeID]
           {
