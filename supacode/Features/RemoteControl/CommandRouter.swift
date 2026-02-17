@@ -110,6 +110,10 @@ struct CommandRouter {
     case .markNotificationsRead(let worktreeID):
       guard let state = terminalManager.stateIfExists(for: worktreeID) else { return }
       state.markAllNotificationsRead()
+
+    case .requestResync, .toggleRepositoryExpanded:
+      // Handled directly in supacodeApp.swift before routing
+      break
     }
   }
 

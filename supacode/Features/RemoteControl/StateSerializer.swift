@@ -136,7 +136,8 @@ enum StateSerializer {
     worktreeInfoByID: [Worktree.ID: WorktreeInfoEntry] = [:],
     worktreeOrderByRepository: [String: [Worktree.ID]] = [:],
     archivedWorktreeIDs: Set<Worktree.ID> = [],
-    repositoryOrderIDs: [Repository.ID] = []
+    repositoryOrderIDs: [Repository.ID] = [],
+    collapsedRepositoryIDs: [Repository.ID] = []
   ) -> StateSnapshot {
     // Sort repositories to match mac sidebar order
     let sortedRepositories: [Repository]
@@ -196,10 +197,15 @@ enum StateSerializer {
       )
     }
 
+    let allRepoIDs = Set(sortedRepositories.map(\.id))
+    let collapsedSet = Set(collapsedRepositoryIDs).intersection(allRepoIDs)
+    let expandedSet = allRepoIDs.subtracting(collapsedSet)
+
     return StateSnapshot(
       repositories: orderedRepositories,
       selectedWorktreeID: selectedWorktreeID,
       worktreeStates: worktreeStates,
+      expandedRepositoryIDs: expandedSet,
     )
   }
 

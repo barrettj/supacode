@@ -175,6 +175,7 @@ struct SupacodeApp: App {
           guard server.isRunning, !server.connectedDevices.isEmpty,
             let store = storeRef
           else { return }
+          @Shared(.appStorage("sidebarCollapsedRepositoryIDs")) var collapsedRepoIDs: [Repository.ID] = []
           let snapshot = StateSerializer.serializeSnapshot(
             repositories: store.repositories.repositories.elements.map { $0 },
             selectedWorktreeID: store.repositories.selectedWorktreeID,
@@ -184,6 +185,7 @@ struct SupacodeApp: App {
             worktreeOrderByRepository: store.repositories.worktreeOrderByRepository,
             archivedWorktreeIDs: store.repositories.archivedWorktreeIDSet,
             repositoryOrderIDs: store.repositories.repositoryOrderIDs,
+            collapsedRepositoryIDs: collapsedRepoIDs,
           )
           do {
             let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
@@ -228,11 +230,56 @@ struct SupacodeApp: App {
       },
     )
     _commandRouter = State(initialValue: commandRouter)
-    server.onCommandReceived = { _, command in
-      commandRouter.route(command)
+    server.onCommandReceived = { sessionID, command in
+      switch command {
+      case .requestResync:
+        guard let store = storeRef else { return }
+        @Shared(.appStorage("sidebarCollapsedRepositoryIDs")) var collapsedRepoIDs: [Repository.ID] = []
+        let snapshot = StateSerializer.serializeSnapshot(
+          repositories: store.repositories.repositories.elements.map { $0 },
+          selectedWorktreeID: store.repositories.selectedWorktreeID,
+          terminalManager: terminalManager,
+          pinnedWorktreeIDs: store.repositories.pinnedWorktreeIDs,
+          worktreeInfoByID: store.repositories.worktreeInfoByID,
+          worktreeOrderByRepository: store.repositories.worktreeOrderByRepository,
+          archivedWorktreeIDs: store.repositories.archivedWorktreeIDSet,
+          repositoryOrderIDs: store.repositories.repositoryOrderIDs,
+          collapsedRepositoryIDs: collapsedRepoIDs,
+        )
+        do {
+          let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
+          server.sendToSession(sessionID, message: message)
+        } catch {
+          logger.warning("Failed to send resync snapshot: \(error)")
+        }
+      case .toggleRepositoryExpanded(let repositoryID):
+        @Shared(.appStorage("sidebarCollapsedRepositoryIDs")) var collapsedRepoIDs: [Repository.ID] = []
+        let isCurrentlyCollapsed = collapsedRepoIDs.contains(repositoryID)
+        $collapsedRepoIDs.withLock { ids in
+          if isCurrentlyCollapsed {
+            ids.removeAll { $0 == repositoryID }
+          } else {
+            ids.append(repositoryID)
+            ids.sort()
+          }
+        }
+        let delta = StateDelta.repositoryExpandedChanged(
+          repositoryID: repositoryID,
+          isExpanded: isCurrentlyCollapsed,
+        )
+        do {
+          let message = try RemoteMessage(type: .stateDelta, payload: delta)
+          server.broadcast(message)
+        } catch {
+          logger.warning("Failed to broadcast collapse delta: \(error)")
+        }
+      default:
+        commandRouter.route(command)
+      }
     }
     server.onSessionAuthenticated = { sessionID in
       guard let store = storeRef else { return }
+      @Shared(.appStorage("sidebarCollapsedRepositoryIDs")) var collapsedRepoIDs: [Repository.ID] = []
       let snapshot = StateSerializer.serializeSnapshot(
         repositories: store.repositories.repositories.elements.map { $0 },
         selectedWorktreeID: store.repositories.selectedWorktreeID,
@@ -241,6 +288,8 @@ struct SupacodeApp: App {
         worktreeInfoByID: store.repositories.worktreeInfoByID,
         worktreeOrderByRepository: store.repositories.worktreeOrderByRepository,
         archivedWorktreeIDs: store.repositories.archivedWorktreeIDSet,
+        repositoryOrderIDs: store.repositories.repositoryOrderIDs,
+        collapsedRepositoryIDs: collapsedRepoIDs,
       )
       do {
         let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
