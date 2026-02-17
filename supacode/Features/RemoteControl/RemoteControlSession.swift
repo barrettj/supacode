@@ -31,8 +31,11 @@ final class RemoteControlSession: Identifiable {
     let nonce = UUID().uuidString
     self.nonce = nonce
     let challenge = AuthChallenge(nonce: nonce)
-    if let message = try? RemoteMessage(type: .authChallenge, payload: challenge) {
+    do {
+      let message = try RemoteMessage(type: .authChallenge, payload: challenge)
       send(message)
+    } catch {
+      logger.warning("Failed to encode auth challenge: \(error)")
     }
     receiveLoop()
   }
@@ -43,13 +46,23 @@ final class RemoteControlSession: Identifiable {
   }
 
   func send(_ message: RemoteMessage) {
-    guard let data = try? JSONEncoder().encode(message) else { return }
+    let data: Data
+    do {
+      data = try JSONEncoder().encode(message)
+    } catch {
+      logger.warning("Failed to encode message: \(error)")
+      return
+    }
     let metadata = NWProtocolWebSocket.Metadata(opcode: .text)
     let context = NWConnection.ContentContext(
       identifier: "websocket",
       metadata: [metadata],
     )
-    connection.send(content: data, contentContext: context, completion: .idempotent)
+    connection.send(content: data, contentContext: context, completion: .contentProcessed({ error in
+      if let error {
+        logger.warning("Failed to send message: \(error)")
+      }
+    }))
   }
 
   private func receiveLoop() {
@@ -76,20 +89,32 @@ final class RemoteControlSession: Identifiable {
   }
 
   private func handleMessage(_ data: Data) {
-    guard let message = try? JSONDecoder().decode(RemoteMessage.self, from: data) else { return }
+    let message: RemoteMessage
+    do {
+      message = try JSONDecoder().decode(RemoteMessage.self, from: data)
+    } catch {
+      logger.warning("Failed to decode incoming message: \(error)")
+      return
+    }
 
     switch message.type {
     case .authRequest:
       handleAuthRequest(message)
     case .command:
       guard isAuthenticated else { return }
-      if let command = try? message.decode(RemoteCommand.self) {
+      do {
+        let command = try message.decode(RemoteCommand.self)
         onCommandReceived?(command)
+      } catch {
+        logger.warning("Failed to decode command: \(error)")
       }
     case .terminalContentRequest:
       guard isAuthenticated else { return }
-      if let request = try? message.decode(TerminalContentRequest.self) {
+      do {
+        let request = try message.decode(TerminalContentRequest.self)
         onTerminalContentRequested?(request)
+      } catch {
+        logger.warning("Failed to decode terminal content request: \(error)")
       }
     case .pong:
       break
@@ -99,9 +124,15 @@ final class RemoteControlSession: Identifiable {
   }
 
   private func handleAuthRequest(_ message: RemoteMessage) {
-    guard let request = try? message.decode(AuthRequest.self),
-      let nonce
-    else {
+    let request: AuthRequest
+    do {
+      request = try message.decode(AuthRequest.self)
+    } catch {
+      logger.warning("Failed to decode auth request: \(error)")
+      sendAuthFailure("Invalid request")
+      return
+    }
+    guard let nonce else {
       sendAuthFailure("Invalid request")
       return
     }
@@ -135,16 +166,22 @@ final class RemoteControlSession: Identifiable {
     let token = UUID().uuidString
     sessionToken = token
     let response = AuthResponse(success: true, sessionToken: token, error: nil)
-    if let message = try? RemoteMessage(type: .authResponse, payload: response) {
+    do {
+      let message = try RemoteMessage(type: .authResponse, payload: response)
       send(message)
+    } catch {
+      logger.warning("Failed to encode auth success response: \(error)")
     }
     onAuthenticated?(deviceName)
   }
 
-  private func sendAuthFailure(_ error: String) {
-    let response = AuthResponse(success: false, sessionToken: nil, error: error)
-    if let message = try? RemoteMessage(type: .authResponse, payload: response) {
+  private func sendAuthFailure(_ reason: String) {
+    let response = AuthResponse(success: false, sessionToken: nil, error: reason)
+    do {
+      let message = try RemoteMessage(type: .authResponse, payload: response)
       send(message)
+    } catch {
+      logger.warning("Failed to encode auth failure response: \(error)")
     }
   }
 }

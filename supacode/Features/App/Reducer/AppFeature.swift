@@ -12,6 +12,8 @@ private let notificationSound: NSSound? = {
   return NSSound(contentsOf: url, byReference: true)
 }()
 
+private nonisolated let logger = SupaLogger("AppFeature")
+
 private enum CancelID {
   static let periodicRefresh = "app.periodicRefresh"
 }
@@ -109,7 +111,11 @@ struct AppFeature {
             @Shared(.settingsFile) var settingsFile
             let settings = settingsFile.global
             guard settings.remoteControlEnabled, !settings.remoteControlPin.isEmpty else { return }
-            try? await remoteControlClient.start(settings.remoteControlPin)
+            do {
+              try await remoteControlClient.start(settings.remoteControlPin)
+            } catch {
+              logger.warning("Failed to start remote control server: \(error)")
+            }
           }
         )
 
@@ -311,7 +317,11 @@ struct AppFeature {
           .run { _ in
             if remoteControlEnabled, !remoteControlPin.isEmpty {
               if await !remoteControlClient.isRunning() {
-                try? await remoteControlClient.start(remoteControlPin)
+                do {
+                  try await remoteControlClient.start(remoteControlPin)
+                } catch {
+                  logger.warning("Failed to start remote control server: \(error)")
+                }
               }
             } else {
               if await remoteControlClient.isRunning() {

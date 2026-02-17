@@ -15,6 +15,8 @@ import Sharing
 import SupacodeShared
 import SwiftUI
 
+private let logger = SupaLogger("App")
+
 private enum GhosttyCLI {
   static let argv: [UnsafeMutablePointer<CChar>?] = {
     var args: [UnsafeMutablePointer<CChar>?] = []
@@ -178,14 +180,20 @@ struct SupacodeApp: App {
             selectedWorktreeID: store.repositories.selectedWorktreeID,
             terminalManager: terminalManager,
           )
-          if let message = try? RemoteMessage(type: .stateSnapshot, payload: snapshot) {
+          do {
+            let message = try RemoteMessage(type: .stateSnapshot, payload: snapshot)
             server.broadcast(message)
+          } catch {
+            logger.warning("Failed to encode state snapshot: \(error)")
           }
         },
         broadcastDelta: { delta in
           guard server.isRunning, !server.connectedDevices.isEmpty else { return }
-          if let message = try? RemoteMessage(type: .stateDelta, payload: delta) {
+          do {
+            let message = try RemoteMessage(type: .stateDelta, payload: delta)
             server.broadcast(message)
+          } catch {
+            logger.warning("Failed to encode state delta: \(error)")
           }
         },
         connectedDevices: {
@@ -221,17 +229,23 @@ struct SupacodeApp: App {
       switch request.action {
       case .startStreaming:
         contentStreamer.startStreaming(surfaceID: request.surfaceID) { content in
-          if let message = try? RemoteMessage(type: .terminalContent, payload: content) {
+          do {
+            let message = try RemoteMessage(type: .terminalContent, payload: content)
             server.sendToSession(sessionID, message: message)
+          } catch {
+            logger.warning("Failed to encode terminal content for streaming: \(error)")
           }
         }
       case .stopStreaming:
         contentStreamer.stopStreaming(surfaceID: request.surfaceID)
       case .requestOnce:
-        if let content = contentStreamer.readContentOnce(surfaceID: request.surfaceID),
-          let message = try? RemoteMessage(type: .terminalContent, payload: content)
-        {
-          server.sendToSession(sessionID, message: message)
+        if let content = contentStreamer.readContentOnce(surfaceID: request.surfaceID) {
+          do {
+            let message = try RemoteMessage(type: .terminalContent, payload: content)
+            server.sendToSession(sessionID, message: message)
+          } catch {
+            logger.warning("Failed to encode terminal content for one-time read: \(error)")
+          }
         }
       }
     }

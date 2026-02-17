@@ -16,8 +16,12 @@ struct RemoteControlClient {
 
 extension RemoteControlClient: DependencyKey {
   static let liveValue = RemoteControlClient(
-    start: { _ in fatalError("RemoteControlClient.start not configured") },
-    stop: { fatalError("RemoteControlClient.stop not configured") },
+    start: { _ in
+      assertionFailure("RemoteControlClient.start not configured")
+    },
+    stop: {
+      assertionFailure("RemoteControlClient.stop not configured")
+    },
     isRunning: { false },
     broadcastStateUpdate: {},
     broadcastDelta: { _ in },
