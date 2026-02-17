@@ -318,12 +318,13 @@ struct AppFeature {
           },
           .run { _ in
             if remoteControlEnabled, !remoteControlPin.isEmpty {
-              if await !remoteControlClient.isRunning() {
-                do {
-                  try await remoteControlClient.start(remoteControlPin, remoteControlPort, remoteControlName)
-                } catch {
-                  logger.warning("Failed to start remote control server: \(error)")
-                }
+              if await remoteControlClient.isRunning() {
+                await remoteControlClient.stop()
+              }
+              do {
+                try await remoteControlClient.start(remoteControlPin, remoteControlPort, remoteControlName)
+              } catch {
+                logger.warning("Failed to start remote control server: \(error)")
               }
             } else {
               if await remoteControlClient.isRunning() {

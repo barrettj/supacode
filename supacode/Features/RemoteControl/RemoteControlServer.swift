@@ -61,6 +61,7 @@ final class RemoteControlServer {
     sessions.removeAll()
     connectedDevices.removeAll()
     isRunning = false
+    CertificateManager.cleanup()
     logger.info("Remote control server stopped")
   }
 

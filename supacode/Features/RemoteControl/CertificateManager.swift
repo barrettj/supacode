@@ -9,9 +9,10 @@ private let logger = SupaLogger("CertificateManager")
 enum CertificateManager {
   private static let identityLabel = "com.supacode.remote-control.identity"
 
-  /// Returns TLS options configured with the app's self-signed identity.
+  /// Returns TLS options configured with a fresh self-signed identity.
   static func tlsOptions() throws -> NWProtocolTLS.Options {
-    let identity = try loadOrCreateIdentity()
+    deleteExistingItems()
+    let identity = try generateAndStoreIdentity()
     let options = NWProtocolTLS.Options()
     let secIdentity = sec_identity_create(identity)!
     sec_protocol_options_set_local_identity(options.securityProtocolOptions, secIdentity)
@@ -19,29 +20,21 @@ enum CertificateManager {
     return options
   }
 
-  // MARK: - Private
-
-  private static func loadOrCreateIdentity() throws -> SecIdentity {
-    if let existing = loadIdentityFromKeychain() {
-      return existing
-    }
-    logger.info("No existing TLS identity found, generating new self-signed certificate")
-    return try generateAndStoreIdentity()
+  /// Removes ephemeral keychain items created for TLS.
+  static func cleanup() {
+    deleteExistingItems()
   }
 
-  private static func loadIdentityFromKeychain() -> SecIdentity? {
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassIdentity,
-      kSecAttrLabel as String: identityLabel,
-      kSecReturnRef as String: true,
-      kSecUseDataProtectionKeychain as String: true,
-    ]
-    var result: CFTypeRef?
-    let status = SecItemCopyMatching(query as CFDictionary, &result)
-    guard status == errSecSuccess, let identity = result else {
-      return nil
+  // MARK: - Private
+
+  private static func deleteExistingItems() {
+    let classes: [CFString] = [kSecClassKey, kSecClassCertificate, kSecClassIdentity]
+    for secClass in classes {
+      SecItemDelete([
+        kSecClass as String: secClass,
+        kSecAttrLabel as String: identityLabel,
+      ] as CFDictionary)
     }
-    return (identity as! SecIdentity)  // swiftlint:disable:this force_cast
   }
 
   private static func generateAndStoreIdentity() throws -> SecIdentity {
@@ -50,7 +43,6 @@ enum CertificateManager {
       kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
       kSecAttrKeySizeInBits as String: 256,
       kSecAttrLabel as String: identityLabel,
-      kSecUseDataProtectionKeychain as String: true,
       kSecPrivateKeyAttrs as String: [
         kSecAttrIsPermanent as String: true,
         kSecAttrLabel as String: identityLabel,
@@ -70,7 +62,6 @@ enum CertificateManager {
       kSecClass as String: kSecClassCertificate,
       kSecValueRef as String: certificate,
       kSecAttrLabel as String: identityLabel,
-      kSecUseDataProtectionKeychain as String: true,
     ]
     let certStatus = SecItemAdd(certAddQuery as CFDictionary, nil)
     guard certStatus == errSecSuccess || certStatus == errSecDuplicateItem else {
@@ -78,10 +69,17 @@ enum CertificateManager {
     }
 
     // 4. Load the identity (cert + key pair) back from Keychain
-    guard let identity = loadIdentityFromKeychain() else {
+    let query: [String: Any] = [
+      kSecClass as String: kSecClassIdentity,
+      kSecAttrLabel as String: identityLabel,
+      kSecReturnRef as String: true,
+    ]
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    guard status == errSecSuccess, let identity = result else {
       throw CertificateError.identityLoadFailed
     }
-    return identity
+    return (identity as! SecIdentity)  // swiftlint:disable:this force_cast
   }
 
   private static func createSelfSignedCertificate(privateKey: SecKey) throws -> SecCertificate {
