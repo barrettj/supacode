@@ -19,6 +19,8 @@ struct RemoteAppFeature {
   enum Action {
     case appLaunched
     case appBecameActive
+    case resyncTimedOut
+    case reconnectFailed
     case connection(ConnectionFeature.Action)
     case dashboard(DashboardFeature.Action)
     case terminalView(TerminalViewFeature.Action)
@@ -27,6 +29,10 @@ struct RemoteAppFeature {
   }
 
   @Dependency(\.remoteStateClient) var remoteStateClient
+
+  private enum CancelID {
+    case resyncTimeout
+  }
 
   var body: some Reducer<State, Action> {
     Scope(state: \.connection, action: \.connection) {
@@ -42,9 +48,43 @@ struct RemoteAppFeature {
         return .none
 
       case .appBecameActive:
-        if state.isConnected {
+        guard state.isConnected else { return .none }
+        let isSocketAlive = remoteStateClient.isConnected()
+        if isSocketAlive {
+          // Connection alive — request fresh state
           state.dashboard.isResyncing = true
+          return .merge(
+            .run { send in
+              try await remoteStateClient.send(.requestResync)
+            } catch: { error, send in
+              logger.warning("Failed to send resync: \(error)")
+              await send(.resyncTimedOut)
+            },
+            .run { send in
+              try await Task.sleep(for: .seconds(5))
+              await send(.resyncTimedOut)
+            }
+            .cancellable(id: CancelID.resyncTimeout)
+          )
+        } else {
+          // Connection dead — auto-reconnect
+          state.dashboard.isResyncing = true
+          return .send(.connection(.reconnect))
         }
+
+      case .resyncTimedOut:
+        if state.dashboard.isResyncing {
+          // Resync didn't complete in time — try reconnecting
+          return .send(.connection(.reconnect))
+        }
+        return .none
+
+      case .reconnectFailed:
+        state.dashboard.isResyncing = false
+        state.isConnected = false
+        state.terminalView = nil
+        state.dashboard.remoteState = nil
+        state.dashboard.selectedWorktreeID = nil
         return .none
 
       // MARK: - Connection delegates
@@ -57,17 +97,30 @@ struct RemoteAppFeature {
           state.terminalView?.worktreeState = updatedState
         }
         return .send(.dashboard(.stateSnapshotReceived(snapshot)))
+          .merge(with: .cancel(id: CancelID.resyncTimeout))
 
       case .connection(.delegate(.stateUpdate(let update))):
         switch update {
         case .connected(let snapshot):
           state.dashboard.isResyncing = false
-          if let terminalView = state.terminalView,
+          // Update terminal to match current selection from Mac
+          if let selectedID = snapshot.selectedWorktreeID,
+            let worktreeState = snapshot.worktreeStates[selectedID]
+          {
+            state.terminalView = TerminalViewFeature.State(
+              worktreeID: selectedID,
+              worktreeState: worktreeState,
+            )
+            state.dashboard.selectedWorktreeID = selectedID
+          } else if let terminalView = state.terminalView,
             let updatedState = snapshot.worktreeStates[terminalView.worktreeID]
           {
             state.terminalView?.worktreeState = updatedState
+          } else {
+            state.terminalView = nil
           }
           return .send(.dashboard(.stateSnapshotReceived(snapshot)))
+            .merge(with: .cancel(id: CancelID.resyncTimeout))
 
         case .delta(let delta):
           state.dashboard.remoteState?.apply(delta)

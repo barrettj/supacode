@@ -24,6 +24,7 @@ struct RemoteStateClient {
   var send: @Sendable (RemoteCommand) async throws -> Void
   var requestTerminalContent: @Sendable (TerminalContentRequest) async throws -> Void
   var disconnect: @Sendable () -> Void
+  var isConnected: @Sendable () -> Bool
 }
 
 extension RemoteStateClient: DependencyKey {
@@ -38,6 +39,7 @@ extension RemoteStateClient: DependencyKey {
       send: { command in try await manager.send(command) },
       requestTerminalContent: { request in try await manager.requestTerminalContent(request) },
       disconnect: { manager.disconnect() },
+      isConnected: { webSocketClient.isConnected() },
     )
   }
 
@@ -47,6 +49,7 @@ extension RemoteStateClient: DependencyKey {
     send: { _ in },
     requestTerminalContent: { _ in },
     disconnect: {},
+    isConnected: { false },
   )
 }
 

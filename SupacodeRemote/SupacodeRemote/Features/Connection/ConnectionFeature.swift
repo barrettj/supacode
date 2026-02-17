@@ -60,6 +60,7 @@ struct ConnectionFeature {
     case connectWithPIN
     case connectToManualHost
     case connectionResult(Result<ConnectionSuccess, Error>)
+    case reconnect
     case disconnect
     case stateUpdate(RemoteStateUpdate)
     case delegate(Delegate)
@@ -187,6 +188,16 @@ struct ConnectionFeature {
           state.isPINSheetPresented = true
         }
         return .none
+
+      case .reconnect:
+        guard let host = state.selectedHost,
+          let saved = state.savedCredentials[host.id]
+        else {
+          return .none
+        }
+        state.pinEntry = saved.pin
+        state.connectionStatus = .connecting
+        return .send(.connectWithPIN)
 
       case .stateUpdate(let update):
         switch update {
