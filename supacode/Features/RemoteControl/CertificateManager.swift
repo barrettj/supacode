@@ -34,6 +34,7 @@ enum CertificateManager {
       kSecClass as String: kSecClassIdentity,
       kSecAttrLabel as String: identityLabel,
       kSecReturnRef as String: true,
+      kSecUseDataProtectionKeychain as String: true,
     ]
     var result: CFTypeRef?
     let status = SecItemCopyMatching(query as CFDictionary, &result)
@@ -49,6 +50,7 @@ enum CertificateManager {
       kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
       kSecAttrKeySizeInBits as String: 256,
       kSecAttrLabel as String: identityLabel,
+      kSecUseDataProtectionKeychain as String: true,
       kSecPrivateKeyAttrs as String: [
         kSecAttrIsPermanent as String: true,
         kSecAttrLabel as String: identityLabel,
@@ -68,6 +70,7 @@ enum CertificateManager {
       kSecClass as String: kSecClassCertificate,
       kSecValueRef as String: certificate,
       kSecAttrLabel as String: identityLabel,
+      kSecUseDataProtectionKeychain as String: true,
     ]
     let certStatus = SecItemAdd(certAddQuery as CFDictionary, nil)
     guard certStatus == errSecSuccess || certStatus == errSecDuplicateItem else {
