@@ -162,7 +162,7 @@ private final class WebSocketManager: Sendable {
 
       do {
         let message = try JSONDecoder().decode(RemoteMessage.self, from: content)
-        self.state.withLock { $0.continuation?.yield(message) }
+        _ = self.state.withLock { $0.continuation?.yield(message) }
       } catch {
         logger.warning("Failed to decode WebSocket message: \(error)")
       }

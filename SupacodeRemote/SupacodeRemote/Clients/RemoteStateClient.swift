@@ -144,7 +144,7 @@ private final class RemoteStateManager: Sendable {
     }
 
     // Yield connected state and start message loop
-    state.withLock { $0.continuation?.yield(.connected(snapshot)) }
+    _ = state.withLock { $0.continuation?.yield(.connected(snapshot)) }
 
     // Continue processing remaining messages in background
     Task { [weak self] in
@@ -195,21 +195,21 @@ private final class RemoteStateManager: Sendable {
     case .stateSnapshot:
       do {
         let snapshot = try message.decode(StateSnapshot.self)
-        state.withLock { $0.continuation?.yield(.connected(snapshot)) }
+        _ = state.withLock { $0.continuation?.yield(.connected(snapshot)) }
       } catch {
         logger.warning("Failed to decode state snapshot: \(error)")
       }
     case .stateDelta:
       do {
         let delta = try message.decode(StateDelta.self)
-        state.withLock { $0.continuation?.yield(.delta(delta)) }
+        _ = state.withLock { $0.continuation?.yield(.delta(delta)) }
       } catch {
         logger.warning("Failed to decode state delta: \(error)")
       }
     case .terminalContent:
       do {
         let content = try message.decode(TerminalContent.self)
-        state.withLock { $0.continuation?.yield(.terminalContent(content)) }
+        _ = state.withLock { $0.continuation?.yield(.terminalContent(content)) }
       } catch {
         logger.warning("Failed to decode terminal content: \(error)")
       }
