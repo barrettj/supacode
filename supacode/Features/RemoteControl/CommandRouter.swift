@@ -130,9 +130,38 @@ struct CommandRouter {
   }
 
   private func sendTextToSurface(surfaceID: String, text: String) {
-    guard let surfaceView = findSurfaceView(surfaceID),
-      let surface = surfaceView.surface
-    else { return }
+    guard let surfaceView = findSurfaceView(surfaceID) else { return }
+    sendTextViaSurface(surfaceView, text: text)
+  }
+
+  private func handleKeyEvent(surfaceID: String, keyEvent: RemoteKeyEvent) {
+    guard let surfaceView = findSurfaceView(surfaceID) else { return }
+
+    // Ctrl+key combinations: send the corresponding control character
+    if keyEvent.modifiers.contains(.ctrl),
+      let characterValue = keyEvent.characterValue,
+      let firstChar = characterValue.uppercased().first,
+      let ascii = firstChar.asciiValue,
+      ascii >= 64, ascii <= 95
+    {
+      let controlChar = String(Character(UnicodeScalar(ascii - 64)))
+      sendTextViaSurface(surfaceView, text: controlChar)
+      return
+    }
+
+    if let characterValue = keyEvent.characterValue, keyEvent.key == .character {
+      sendTextViaSurface(surfaceView, text: characterValue)
+      return
+    }
+
+    // Special keys: map to escape sequences / control codes
+    if let escapeSequence = escapeSequence(for: keyEvent.key) {
+      sendTextViaSurface(surfaceView, text: escapeSequence)
+    }
+  }
+
+  private func sendTextViaSurface(_ surfaceView: GhosttySurfaceView, text: String) {
+    guard let surface = surfaceView.surface else { return }
     let len = text.utf8CString.count
     if len == 0 { return }
     text.withCString { ptr in
@@ -140,17 +169,35 @@ struct CommandRouter {
     }
   }
 
-  private func handleKeyEvent(surfaceID: String, keyEvent: RemoteKeyEvent) {
-    guard let surfaceView = findSurfaceView(surfaceID) else { return }
-
-    if let characterValue = keyEvent.characterValue {
-      guard let surface = surfaceView.surface else { return }
-      let len = characterValue.utf8CString.count
-      if len == 0 { return }
-      characterValue.withCString { ptr in
-        ghostty_surface_text(surface, ptr, UInt(len - 1))
-      }
+  private func escapeSequence(for key: RemoteKeyEvent.RemoteKey) -> String? {
+    switch key {
+    case .enter: "\r"
+    case .tab: "\t"
+    case .escape: "\u{1b}"
+    case .backspace: "\u{7f}"
+    case .delete: "\u{1b}[3~"
+    case .arrowUp: "\u{1b}[A"
+    case .arrowDown: "\u{1b}[B"
+    case .arrowRight: "\u{1b}[C"
+    case .arrowLeft: "\u{1b}[D"
+    case .home: "\u{1b}[H"
+    case .end: "\u{1b}[F"
+    case .pageUp: "\u{1b}[5~"
+    case .pageDown: "\u{1b}[6~"
+    case .space: " "
+    case .f1: "\u{1b}OP"
+    case .f2: "\u{1b}OQ"
+    case .f3: "\u{1b}OR"
+    case .f4: "\u{1b}OS"
+    case .f5: "\u{1b}[15~"
+    case .f6: "\u{1b}[17~"
+    case .f7: "\u{1b}[18~"
+    case .f8: "\u{1b}[19~"
+    case .f9: "\u{1b}[20~"
+    case .f10: "\u{1b}[21~"
+    case .f11: "\u{1b}[23~"
+    case .f12: "\u{1b}[24~"
+    case .character: nil
     }
-    // TODO: Handle special key mappings (RemoteKey enum -> Ghostty key codes)
   }
 }
