@@ -1,22 +1,124 @@
 // Created by Barrett Jacobsen
 
 import ComposableArchitecture
+import SupacodeShared
 
 @Reducer
 struct RemoteAppFeature {
   @ObservableState
-  struct State: Equatable {}
+  struct State: Equatable {
+    var connection = ConnectionFeature.State()
+    var dashboard = DashboardFeature.State()
+    var terminalView: TerminalViewFeature.State?
+    var isConnected = false
+  }
 
   enum Action {
     case appLaunched
+    case connection(ConnectionFeature.Action)
+    case dashboard(DashboardFeature.Action)
+    case terminalView(TerminalViewFeature.Action)
+    case dismissTerminal
+    case disconnect
   }
 
+  @Dependency(\.remoteStateClient) var remoteStateClient
+
   var body: some Reducer<State, Action> {
+    Scope(state: \.connection, action: \.connection) {
+      ConnectionFeature()
+    }
+    Scope(state: \.dashboard, action: \.dashboard) {
+      DashboardFeature()
+    }
+
     Reduce { state, action in
       switch action {
       case .appLaunched:
         return .none
+
+      // MARK: - Connection delegates
+      case .connection(.delegate(.connected(let snapshot))):
+        state.isConnected = true
+        return .send(.dashboard(.stateSnapshotReceived(snapshot)))
+
+      case .connection(.delegate(.stateUpdate(let update))):
+        switch update {
+        case .connected(let snapshot):
+          return .send(.dashboard(.stateSnapshotReceived(snapshot)))
+
+        case .delta(let delta):
+          state.dashboard.remoteState?.apply(delta)
+          if let terminalView = state.terminalView,
+            let updatedState = state.dashboard.remoteState?.worktreeStates[terminalView.worktreeID]
+          {
+            state.terminalView?.worktreeState = updatedState
+          }
+          return .none
+
+        case .terminalContent(let content):
+          if state.terminalView != nil {
+            return .send(.terminalView(.terminalContentReceived(content)))
+          }
+          return .none
+
+        case .disconnected:
+          state.isConnected = false
+          state.terminalView = nil
+          state.dashboard.remoteState = nil
+          state.dashboard.selectedWorktreeID = nil
+          return .none
+        }
+
+      // MARK: - Dashboard delegates
+      case .dashboard(.delegate(.sendCommand(let command))):
+        return .run { _ in
+          try await remoteStateClient.send(command)
+        }
+
+      case .dashboard(.delegate(.worktreeSelected(let worktreeID))):
+        if let worktreeState = state.dashboard.remoteState?.worktreeStates[worktreeID] {
+          state.terminalView = TerminalViewFeature.State(
+            worktreeID: worktreeID,
+            worktreeState: worktreeState,
+          )
+        }
+        return .none
+
+      // MARK: - Terminal view delegates
+      case .terminalView(.delegate(.sendCommand(let command))):
+        return .run { _ in
+          try await remoteStateClient.send(command)
+        }
+
+      case .terminalView(.delegate(.requestTerminalContent(let surfaceID, let action))):
+        return .run { _ in
+          try await remoteStateClient.requestTerminalContent(
+            TerminalContentRequest(surfaceID: surfaceID, action: action)
+          )
+        }
+
+      // MARK: - Dismiss terminal
+      case .dismissTerminal:
+        state.terminalView = nil
+        return .none
+
+      // MARK: - Disconnect
+      case .disconnect:
+        remoteStateClient.disconnect()
+        state.isConnected = false
+        state.terminalView = nil
+        state.dashboard.remoteState = nil
+        state.dashboard.selectedWorktreeID = nil
+        return .send(.connection(.disconnect))
+
+      // Pass-through for child actions
+      case .connection, .dashboard, .terminalView:
+        return .none
       }
+    }
+    .ifLet(\.terminalView, action: \.terminalView) {
+      TerminalViewFeature()
     }
   }
 }
