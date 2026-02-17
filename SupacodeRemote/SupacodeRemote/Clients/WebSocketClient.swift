@@ -3,6 +3,7 @@
 import ComposableArchitecture
 import Foundation
 import Network
+import Security
 import OSLog
 import SupacodeShared
 import Synchronization
@@ -56,7 +57,16 @@ private final class WebSocketManager: Sendable {
   private let state = Mutex(State())
 
   func connect(to endpoint: NWEndpoint) async throws {
-    let parameters = NWParameters(tls: nil)
+    let tlsOptions = NWProtocolTLS.Options()
+    sec_protocol_options_set_verify_block(
+      tlsOptions.securityProtocolOptions,
+      { _, _, completionHandler in
+        // Trust any certificate -- PIN handles authentication
+        completionHandler(true)
+      },
+      .main
+    )
+    let parameters = NWParameters(tls: tlsOptions)
     let wsOptions = NWProtocolWebSocket.Options()
     parameters.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
     let connection = NWConnection(to: endpoint, using: parameters)
