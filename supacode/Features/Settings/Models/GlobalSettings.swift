@@ -15,6 +15,7 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
   var automaticallyArchiveMergedWorktrees: Bool
   var remoteControlEnabled: Bool
   var remoteControlPin: String
+  var remoteControlPort: Int
 
   static let `default` = GlobalSettings(
     appearanceMode: .dark,
@@ -32,7 +33,8 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     deleteBranchOnDeleteWorktree: true,
     automaticallyArchiveMergedWorktrees: false,
     remoteControlEnabled: false,
-    remoteControlPin: ""
+    remoteControlPin: "",
+    remoteControlPort: 7483
   )
 
   init(
@@ -51,7 +53,8 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     deleteBranchOnDeleteWorktree: Bool,
     automaticallyArchiveMergedWorktrees: Bool,
     remoteControlEnabled: Bool,
-    remoteControlPin: String
+    remoteControlPin: String,
+    remoteControlPort: Int
   ) {
     self.appearanceMode = appearanceMode
     self.defaultEditorID = defaultEditorID
@@ -69,6 +72,7 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     self.automaticallyArchiveMergedWorktrees = automaticallyArchiveMergedWorktrees
     self.remoteControlEnabled = remoteControlEnabled
     self.remoteControlPin = remoteControlPin
+    self.remoteControlPort = remoteControlPort
   }
 
   init(from decoder: any Decoder) throws {
@@ -115,5 +119,8 @@ nonisolated struct GlobalSettings: Codable, Equatable, Sendable {
     remoteControlPin =
       try container.decodeIfPresent(String.self, forKey: .remoteControlPin)
       ?? Self.default.remoteControlPin
+    remoteControlPort =
+      try container.decodeIfPresent(Int.self, forKey: .remoteControlPort)
+      ?? Self.default.remoteControlPort
   }
 }

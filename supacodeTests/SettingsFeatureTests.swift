@@ -26,7 +26,8 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: false,
       automaticallyArchiveMergedWorktrees: true,
       remoteControlEnabled: false,
-      remoteControlPin: ""
+      remoteControlPin: "",
+      remoteControlPort: 7483
     )
     @Shared(.settingsFile) var settingsFile
     $settingsFile.withLock { $0.global = loaded }
@@ -72,7 +73,8 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: true,
       automaticallyArchiveMergedWorktrees: false,
       remoteControlEnabled: false,
-      remoteControlPin: ""
+      remoteControlPin: "",
+      remoteControlPort: 7483
     )
     @Shared(.settingsFile) var settingsFile
     $settingsFile.withLock { $0.global = initialSettings }
@@ -100,7 +102,8 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: initialSettings.deleteBranchOnDeleteWorktree,
       automaticallyArchiveMergedWorktrees: initialSettings.automaticallyArchiveMergedWorktrees,
       remoteControlEnabled: initialSettings.remoteControlEnabled,
-      remoteControlPin: initialSettings.remoteControlPin
+      remoteControlPin: initialSettings.remoteControlPin,
+      remoteControlPort: initialSettings.remoteControlPort
     )
     await store.receive(\.delegate.settingsChanged)
 
@@ -151,7 +154,8 @@ struct SettingsFeatureTests {
       deleteBranchOnDeleteWorktree: true,
       automaticallyArchiveMergedWorktrees: true,
       remoteControlEnabled: false,
-      remoteControlPin: ""
+      remoteControlPin: "",
+      remoteControlPort: 7483
     )
 
     await store.send(.settingsLoaded(loaded)) {

@@ -21,6 +21,7 @@ struct SettingsFeature {
     var automaticallyArchiveMergedWorktrees: Bool
     var remoteControlEnabled: Bool
     var remoteControlPin: String
+    var remoteControlPort: Int
     var selection: SettingsSection? = .general
     var repositorySettings: RepositorySettingsFeature.State?
 
@@ -42,6 +43,7 @@ struct SettingsFeature {
       automaticallyArchiveMergedWorktrees = settings.automaticallyArchiveMergedWorktrees
       remoteControlEnabled = settings.remoteControlEnabled
       remoteControlPin = settings.remoteControlPin
+      remoteControlPort = settings.remoteControlPort
     }
 
     var globalSettings: GlobalSettings {
@@ -61,7 +63,8 @@ struct SettingsFeature {
         deleteBranchOnDeleteWorktree: deleteBranchOnDeleteWorktree,
         automaticallyArchiveMergedWorktrees: automaticallyArchiveMergedWorktrees,
         remoteControlEnabled: remoteControlEnabled,
-        remoteControlPin: remoteControlPin
+        remoteControlPin: remoteControlPin,
+        remoteControlPort: remoteControlPort
       )
     }
   }
@@ -118,6 +121,7 @@ struct SettingsFeature {
         state.automaticallyArchiveMergedWorktrees = normalizedSettings.automaticallyArchiveMergedWorktrees
         state.remoteControlEnabled = normalizedSettings.remoteControlEnabled
         state.remoteControlPin = normalizedSettings.remoteControlPin
+        state.remoteControlPort = normalizedSettings.remoteControlPort
         return .send(.delegate(.settingsChanged(normalizedSettings)))
 
       case .binding:
