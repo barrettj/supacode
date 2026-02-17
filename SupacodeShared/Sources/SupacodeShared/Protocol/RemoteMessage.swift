@@ -76,6 +76,12 @@ extension RemoteMessage: Codable {
 
 // MARK: - JSONFragment
 
+extension NSNumber {
+  fileprivate var isBool: Bool {
+    CFBooleanGetTypeID() == CFGetTypeID(self)
+  }
+}
+
 /// Wraps an arbitrary JSON value so it can be encoded/decoded inline
 /// within a parent `Codable` container, avoiding Base64 encoding of nested JSON.
 private struct JSONFragment: Codable {
@@ -93,13 +99,12 @@ private struct JSONFragment: Codable {
       value = array.map(\.value)
     } else if let string = try? container.decode(String.self) {
       value = string
+    } else if let bool = try? container.decode(Bool.self) {
+      value = bool
     } else if let int = try? container.decode(Int.self) {
-      // Decode Int before Bool because JSONDecoder can decode 0/1 as Bool
       value = int
     } else if let double = try? container.decode(Double.self) {
       value = double
-    } else if let bool = try? container.decode(Bool.self) {
-      value = bool
     } else if container.decodeNil() {
       value = NSNull()
     } else {
@@ -116,14 +121,12 @@ private struct JSONFragment: Codable {
       try container.encode(array.map { JSONFragment(value: $0) })
     case let string as String:
       try container.encode(string)
+    case let number as NSNumber where number.isBool:
+      try container.encode(number.boolValue)
     case let int as Int:
       try container.encode(int)
     case let double as Double:
       try container.encode(double)
-    case let bool as Bool:
-      // NSNumber bridges Bool and numeric types; encode Bool after Int/Double
-      // so that numeric values are preserved as numbers.
-      try container.encode(bool)
     case is NSNull:
       try container.encodeNil()
     default:
