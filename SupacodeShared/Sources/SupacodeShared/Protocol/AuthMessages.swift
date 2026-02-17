@@ -2,9 +2,11 @@
 
 public struct AuthChallenge: Codable, Sendable, Equatable {
   public let nonce: String
+  public let protocolVersion: Int
 
-  public init(nonce: String) {
+  public init(nonce: String, protocolVersion: Int = RemoteMessage.currentVersion) {
     self.nonce = nonce
+    self.protocolVersion = protocolVersion
   }
 }
 

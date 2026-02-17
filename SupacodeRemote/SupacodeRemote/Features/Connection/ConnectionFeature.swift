@@ -1,6 +1,7 @@
 // Created by Barrett Jacobsen
 
 import ComposableArchitecture
+import Foundation
 import Network
 import SupacodeShared
 
@@ -14,6 +15,7 @@ struct ConnectionFeature {
     var isPINSheetPresented = false
     var selectedHost: DiscoveredHost?
     var manualHostEntry: String = ""
+    var savedCredentials: [String: HostCredentials] = HostCredentials.loadAll()
 
     enum ConnectionStatus: Equatable {
       case disconnected
@@ -25,6 +27,31 @@ struct ConnectionFeature {
     }
   }
 
+  struct HostCredentials: Equatable, Codable {
+    var pin: String
+    var sessionToken: String?
+
+    private static let storageKey = "savedHostCredentials"
+
+    static func loadAll() -> [String: HostCredentials] {
+      guard let data = UserDefaults.standard.data(forKey: storageKey),
+        let decoded = try? JSONDecoder().decode([String: HostCredentials].self, from: data)
+      else { return [:] }
+      return decoded
+    }
+
+    static func saveAll(_ credentials: [String: HostCredentials]) {
+      guard let data = try? JSONEncoder().encode(credentials) else { return }
+      UserDefaults.standard.set(data, forKey: storageKey)
+    }
+  }
+
+  struct ConnectionSuccess: Equatable {
+    let hostID: String
+    let pin: String
+    let sessionToken: String?
+  }
+
   enum Action: BindableAction {
     case task
     case startDiscovery
@@ -32,7 +59,7 @@ struct ConnectionFeature {
     case selectHost(DiscoveredHost)
     case connectWithPIN
     case connectToManualHost
-    case connectionResult(Result<Void, Error>)
+    case connectionResult(Result<ConnectionSuccess, Error>)
     case disconnect
     case stateUpdate(RemoteStateUpdate)
     case delegate(Delegate)
@@ -76,7 +103,7 @@ struct ConnectionFeature {
 
       case .selectHost(let host):
         state.selectedHost = host
-        state.pinEntry = ""
+        state.pinEntry = state.savedCredentials[host.id]?.pin ?? ""
         state.isPINSheetPresented = true
         state.connectionStatus = .disconnected
         return .none
@@ -102,12 +129,13 @@ struct ConnectionFeature {
           host: NWEndpoint.Host(host),
           port: NWEndpoint.Port(rawValue: port)!
         )
-        state.selectedHost = DiscoveredHost(
+        let manualHost = DiscoveredHost(
           id: "manual-\(host):\(port)",
           name: host,
           endpoint: endpoint,
         )
-        state.pinEntry = ""
+        state.selectedHost = manualHost
+        state.pinEntry = state.savedCredentials[manualHost.id]?.pin ?? ""
         state.isPINSheetPresented = true
         state.connectionStatus = .disconnected
         return .none
@@ -117,6 +145,8 @@ struct ConnectionFeature {
         state.connectionStatus = .connecting
         let pin = state.pinEntry
         let endpoint = host.endpoint
+        let hostID = host.id
+        let existingToken = state.savedCredentials[hostID]?.sessionToken
         return .run { send in
           async let updates: Void = {
             for await update in remoteStateClient.stateUpdates() {
@@ -124,8 +154,8 @@ struct ConnectionFeature {
             }
           }()
           do {
-            try await remoteStateClient.connect(endpoint, pin)
-            await send(.connectionResult(.success(())))
+            let token = try await remoteStateClient.connect(endpoint, pin, existingToken)
+            await send(.connectionResult(.success(ConnectionSuccess(hostID: hostID, pin: pin, sessionToken: token))))
           } catch {
             await send(.connectionResult(.failure(error)))
           }
@@ -133,8 +163,13 @@ struct ConnectionFeature {
         }
         .cancellable(id: CancelID.connection)
 
-      case .connectionResult(.success):
+      case .connectionResult(.success(let success)):
         state.connectionStatus = .authenticating
+        state.savedCredentials[success.hostID] = HostCredentials(
+          pin: success.pin,
+          sessionToken: success.sessionToken,
+        )
+        HostCredentials.saveAll(state.savedCredentials)
         return .none
 
       case .connectionResult(.failure(let error)):

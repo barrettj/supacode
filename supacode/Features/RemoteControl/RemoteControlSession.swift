@@ -30,7 +30,7 @@ final class RemoteControlSession: Identifiable {
     connection.start(queue: .main)
     let nonce = UUID().uuidString
     self.nonce = nonce
-    let challenge = AuthChallenge(nonce: nonce)
+    let challenge = AuthChallenge(nonce: nonce, protocolVersion: RemoteMessage.currentVersion)
     do {
       let message = try RemoteMessage(type: .authChallenge, payload: challenge)
       send(message)

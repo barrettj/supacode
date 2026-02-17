@@ -62,6 +62,12 @@ struct InputBarView: View {
         EmptyView()
       }
     }
+    .toolbar {
+      ToolbarItemGroup(placement: .keyboard) {
+        Spacer()
+        Button("Done") { isTextFieldFocused = false }
+      }
+    }
     .onChange(of: store.inputMode) { _, newMode in
       // Only show iOS keyboard in keyboard mode
       isTextFieldFocused = newMode == .keyboard

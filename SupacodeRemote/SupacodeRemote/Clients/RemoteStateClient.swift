@@ -19,7 +19,7 @@ enum RemoteStateUpdate: Equatable, Sendable {
 }
 
 struct RemoteStateClient {
-  var connect: @Sendable (NWEndpoint, String) async throws -> Void
+  var connect: @Sendable (NWEndpoint, String, String?) async throws -> String?
   var stateUpdates: @Sendable () -> AsyncStream<RemoteStateUpdate>
   var send: @Sendable (RemoteCommand) async throws -> Void
   var requestTerminalContent: @Sendable (TerminalContentRequest) async throws -> Void
@@ -31,7 +31,9 @@ extension RemoteStateClient: DependencyKey {
     @Dependency(\.webSocketClient) var webSocketClient
     let manager = RemoteStateManager(webSocketClient: webSocketClient)
     return RemoteStateClient(
-      connect: { endpoint, pin in try await manager.connect(endpoint: endpoint, pin: pin) },
+      connect: { endpoint, pin, sessionToken in
+        try await manager.connect(endpoint: endpoint, pin: pin, sessionToken: sessionToken)
+      },
       stateUpdates: { manager.stateUpdates() },
       send: { command in try await manager.send(command) },
       requestTerminalContent: { request in try await manager.requestTerminalContent(request) },
@@ -40,7 +42,7 @@ extension RemoteStateClient: DependencyKey {
   }
 
   static let testValue = RemoteStateClient(
-    connect: { _, _ in },
+    connect: { _, _, _ in nil },
     stateUpdates: { AsyncStream { $0.finish() } },
     send: { _ in },
     requestTerminalContent: { _ in },
@@ -70,7 +72,8 @@ private final class RemoteStateManager: Sendable {
     self.webSocketClient = webSocketClient
   }
 
-  func connect(endpoint: NWEndpoint, pin: String) async throws {
+  @discardableResult
+  func connect(endpoint: NWEndpoint, pin: String, sessionToken: String? = nil) async throws -> String? {
     try await webSocketClient.connect(endpoint)
 
     let receiveStream = webSocketClient.receive()
@@ -90,13 +93,21 @@ private final class RemoteStateManager: Sendable {
       throw RemoteStateError.authFailed("Failed to decode auth challenge: \(error.localizedDescription)")
     }
 
+    // Check protocol version compatibility
+    if challenge.protocolVersion != RemoteMessage.currentVersion {
+      throw RemoteStateError.protocolMismatch(
+        server: challenge.protocolVersion,
+        client: RemoteMessage.currentVersion,
+      )
+    }
+
     // Compute SHA256 hash of (pin + nonce)
     let hash = SHA256.hash(data: Data((pin + challenge.nonce).utf8))
       .map { String(format: "%02x", $0) }.joined()
 
     // Send auth request
     let deviceName = await UIDevice.current.name
-    let authRequest = AuthRequest(hash: hash, deviceName: deviceName, sessionToken: nil)
+    let authRequest = AuthRequest(hash: hash, deviceName: deviceName, sessionToken: sessionToken)
     let authMessage = try RemoteMessage(type: .authRequest, payload: authRequest)
     try await webSocketClient.send(authMessage)
 
@@ -147,6 +158,8 @@ private final class RemoteStateManager: Sendable {
         state.continuation = nil
       }
     }
+
+    return authResponse.sessionToken
   }
 
   func stateUpdates() -> AsyncStream<RemoteStateUpdate> {
@@ -215,6 +228,16 @@ private final class RemoteStateManager: Sendable {
   }
 }
 
-enum RemoteStateError: Error, Sendable {
+enum RemoteStateError: Error, Sendable, LocalizedError {
   case authFailed(String)
+  case protocolMismatch(server: Int, client: Int)
+
+  var errorDescription: String? {
+    switch self {
+    case .authFailed(let message):
+      return message
+    case .protocolMismatch:
+      return "This version of Supacode Remote is not compatible with the Mac app. Please update both apps."
+    }
+  }
 }

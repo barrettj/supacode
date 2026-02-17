@@ -53,6 +53,10 @@ struct PINEntryView: View {
             store.send(.binding(.set(\.isPINSheetPresented, false)))
           }
         }
+        ToolbarItemGroup(placement: .keyboard) {
+          Spacer()
+          Button("Done") { isPINFocused = false }
+        }
       }
       .onAppear { isPINFocused = true }
     }

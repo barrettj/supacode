@@ -13,12 +13,23 @@ enum StateSerializer {
     )
   }
 
-  static func serialize(_ worktree: Worktree) -> RemoteWorktree {
+  static func serialize(
+    _ worktree: Worktree,
+    isPinned: Bool = false,
+    isMainWorktree: Bool = false,
+    info: WorktreeInfoEntry? = nil
+  ) -> RemoteWorktree {
     RemoteWorktree(
       id: worktree.id,
       name: worktree.name,
       detail: worktree.detail,
       repositoryID: worktree.repositoryRootURL.standardizedFileURL.path(percentEncoded: false),
+      isPinned: isPinned,
+      isMainWorktree: isMainWorktree,
+      addedLines: info?.addedLines,
+      removedLines: info?.removedLines,
+      pullRequestNumber: info?.pullRequest?.number,
+      pullRequestState: info?.pullRequest?.state,
     )
   }
 
@@ -80,7 +91,10 @@ enum StateSerializer {
 
   static func serializeWorktreeState(
     _ state: WorktreeTerminalState,
-    worktree: Worktree
+    worktree: Worktree,
+    isPinned: Bool = false,
+    isMainWorktree: Bool = false,
+    info: WorktreeInfoEntry? = nil
   ) -> RemoteWorktreeState {
     let tabs = state.tabManager.tabs.map { serialize($0) }
     let selectedTabID = state.tabManager.selectedTabId?.rawValue.uuidString
@@ -101,7 +115,7 @@ enum StateSerializer {
     }
 
     return RemoteWorktreeState(
-      worktree: serialize(worktree),
+      worktree: serialize(worktree, isPinned: isPinned, isMainWorktree: isMainWorktree, info: info),
       tabs: tabs,
       selectedTabID: selectedTabID,
       splitTrees: splitTrees,
@@ -117,14 +131,25 @@ enum StateSerializer {
   static func serializeSnapshot(
     repositories: [Repository],
     selectedWorktreeID: Worktree.ID?,
-    terminalManager: WorktreeTerminalManager
+    terminalManager: WorktreeTerminalManager,
+    pinnedWorktreeIDs: [Worktree.ID] = [],
+    worktreeInfoByID: [Worktree.ID: WorktreeInfoEntry] = [:]
   ) -> StateSnapshot {
     var worktreeStates: [String: RemoteWorktreeState] = [:]
     let allWorktrees = repositories.flatMap(\.worktrees)
 
     for worktree in allWorktrees {
       if let state = terminalManager.stateIfExists(for: worktree.id) {
-        worktreeStates[worktree.id] = serializeWorktreeState(state, worktree: worktree)
+        let isPinned = pinnedWorktreeIDs.contains(worktree.id)
+        let isMain = worktree.workingDirectory.standardizedFileURL
+          == worktree.repositoryRootURL.standardizedFileURL
+        worktreeStates[worktree.id] = serializeWorktreeState(
+          state,
+          worktree: worktree,
+          isPinned: isPinned,
+          isMainWorktree: isMain,
+          info: worktreeInfoByID[worktree.id],
+        )
       }
     }
 

@@ -31,6 +31,10 @@
 	<array>
 		<string>_supacode._tcp</string>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Supacode Remote uses speech recognition to convert voice commands to terminal input.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Supacode Remote uses the microphone for voice command input.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

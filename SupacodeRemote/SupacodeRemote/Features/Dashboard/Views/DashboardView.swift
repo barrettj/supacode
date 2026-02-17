@@ -6,6 +6,7 @@ import SwiftUI
 
 struct DashboardView: View {
   let store: StoreOf<DashboardFeature>
+  let terminalStore: StoreOf<TerminalViewFeature>?
   @Environment(\.horizontalSizeClass) private var sizeClass
 
   var body: some View {
@@ -13,18 +14,14 @@ struct DashboardView: View {
       NavigationSplitView {
         worktreeList
       } detail: {
-        if store.selectedWorktreeID != nil {
-          Text("Terminal View")
-            .font(.title2)
-            .foregroundStyle(.secondary)
+        if let terminalStore {
+          TerminalView(store: terminalStore)
         } else {
           ContentUnavailableView("Select a worktree", systemImage: "terminal")
         }
       }
     } else {
-      NavigationStack {
-        worktreeList
-      }
+      worktreeList
     }
   }
 
