@@ -34,6 +34,17 @@ struct RemoteControlSettingsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
           }
+
+          Section("Network") {
+            VStack(alignment: .leading) {
+              TextField("Port", value: $store.remoteControlPort, format: .number)
+                .help("TCP port for the remote control server (default: 7483)")
+              Text("TCP port for the remote control server. Change requires restart of remote control.")
+                .foregroundStyle(.secondary)
+                .font(.callout)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+          }
         }
       }
       .formStyle(.grouped)
