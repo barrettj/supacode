@@ -24,7 +24,9 @@ struct SettingsFeatureTests {
       crashReportsEnabled: true,
       githubIntegrationEnabled: true,
       deleteBranchOnDeleteWorktree: false,
-      automaticallyArchiveMergedWorktrees: true
+      automaticallyArchiveMergedWorktrees: true,
+      remoteControlEnabled: false,
+      remoteControlPin: ""
     )
     @Shared(.settingsFile) var settingsFile
     $settingsFile.withLock { $0.global = loaded }
@@ -68,7 +70,9 @@ struct SettingsFeatureTests {
       crashReportsEnabled: false,
       githubIntegrationEnabled: true,
       deleteBranchOnDeleteWorktree: true,
-      automaticallyArchiveMergedWorktrees: false
+      automaticallyArchiveMergedWorktrees: false,
+      remoteControlEnabled: false,
+      remoteControlPin: ""
     )
     @Shared(.settingsFile) var settingsFile
     $settingsFile.withLock { $0.global = initialSettings }
@@ -94,7 +98,9 @@ struct SettingsFeatureTests {
       crashReportsEnabled: initialSettings.crashReportsEnabled,
       githubIntegrationEnabled: initialSettings.githubIntegrationEnabled,
       deleteBranchOnDeleteWorktree: initialSettings.deleteBranchOnDeleteWorktree,
-      automaticallyArchiveMergedWorktrees: initialSettings.automaticallyArchiveMergedWorktrees
+      automaticallyArchiveMergedWorktrees: initialSettings.automaticallyArchiveMergedWorktrees,
+      remoteControlEnabled: initialSettings.remoteControlEnabled,
+      remoteControlPin: initialSettings.remoteControlPin
     )
     await store.receive(\.delegate.settingsChanged)
 
@@ -143,7 +149,9 @@ struct SettingsFeatureTests {
       crashReportsEnabled: false,
       githubIntegrationEnabled: true,
       deleteBranchOnDeleteWorktree: true,
-      automaticallyArchiveMergedWorktrees: true
+      automaticallyArchiveMergedWorktrees: true,
+      remoteControlEnabled: false,
+      remoteControlPin: ""
     )
 
     await store.send(.settingsLoaded(loaded)) {
