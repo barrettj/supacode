@@ -42,7 +42,9 @@ struct SettingsFeature {
       deleteBranchOnDeleteWorktree = settings.deleteBranchOnDeleteWorktree
       automaticallyArchiveMergedWorktrees = settings.automaticallyArchiveMergedWorktrees
       remoteControlEnabled = settings.remoteControlEnabled
-      remoteControlPin = settings.remoteControlPin
+      remoteControlPin = settings.remoteControlPin.isEmpty
+        ? String(format: "%06d", Int.random(in: 0...999_999))
+        : settings.remoteControlPin
       remoteControlPort = settings.remoteControlPort
     }
 
