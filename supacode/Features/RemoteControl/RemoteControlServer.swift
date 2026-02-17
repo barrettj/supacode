@@ -1,6 +1,5 @@
 // Created by Barrett Jacobsen
 
-import CryptoKit
 import Foundation
 import Network
 import SupacodeShared
@@ -25,7 +24,8 @@ final class RemoteControlServer {
     guard !isRunning else { return }
     self.pin = pin
 
-    let parameters = NWParameters(tls: nil)
+    let tlsOptions = try CertificateManager.tlsOptions()
+    let parameters = NWParameters(tls: tlsOptions)
     parameters.allowLocalEndpointReuse = true
     let wsOptions = NWProtocolWebSocket.Options()
     parameters.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
