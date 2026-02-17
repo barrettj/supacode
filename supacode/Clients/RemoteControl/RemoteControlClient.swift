@@ -9,6 +9,7 @@ struct RemoteControlClient {
   var stop: @MainActor @Sendable () -> Void
   var isRunning: @MainActor @Sendable () -> Bool
   var broadcastStateUpdate: @MainActor @Sendable () -> Void
+  var broadcastDelta: @MainActor @Sendable (StateDelta) -> Void
   var connectedDevices: @MainActor @Sendable () -> [RemoteControlServer.ConnectedDevice]
   var disconnect: @MainActor @Sendable (UUID) -> Void
 }
@@ -19,6 +20,7 @@ extension RemoteControlClient: DependencyKey {
     stop: { fatalError("RemoteControlClient.stop not configured") },
     isRunning: { false },
     broadcastStateUpdate: {},
+    broadcastDelta: { _ in },
     connectedDevices: { [] },
     disconnect: { _ in },
   )
@@ -28,6 +30,7 @@ extension RemoteControlClient: DependencyKey {
     stop: {},
     isRunning: { false },
     broadcastStateUpdate: {},
+    broadcastDelta: { _ in },
     connectedDevices: { [] },
     disconnect: { _ in },
   )

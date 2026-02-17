@@ -182,6 +182,12 @@ struct SupacodeApp: App {
             server.broadcast(message)
           }
         },
+        broadcastDelta: { delta in
+          guard server.isRunning, !server.connectedDevices.isEmpty else { return }
+          if let message = try? RemoteMessage(type: .stateDelta, payload: delta) {
+            server.broadcast(message)
+          }
+        },
         connectedDevices: {
           server.connectedDevices
         },

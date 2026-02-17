@@ -628,11 +628,19 @@ struct AppFeature {
       case .commandPalette:
         return .none
 
-      case .terminalEvent(.notificationReceived(let worktreeID, _, _)):
+      case .terminalEvent(.notificationReceived(let worktreeID, let title, let body)):
         let remoteControlClient = remoteControlClient
+        let notification = RemoteNotification(
+          id: UUID().uuidString,
+          surfaceID: "",
+          title: title,
+          body: body,
+          isRead: false,
+        )
+        let delta = StateDelta.notificationReceived(worktreeID: worktreeID, notification: notification)
         var effects: [Effect<Action>] = [
           .send(.repositories(.worktreeNotificationReceived(worktreeID))),
-          .run { _ in await remoteControlClient.broadcastStateUpdate() },
+          .run { _ in await remoteControlClient.broadcastDelta(delta) },
         ]
         if state.settings.notificationSoundEnabled {
           effects.append(
@@ -662,7 +670,8 @@ struct AppFeature {
           state.runScriptStatusByWorktreeID.removeValue(forKey: worktreeID)
         }
         let remoteControlClient = remoteControlClient
-        return .run { _ in await remoteControlClient.broadcastStateUpdate() }
+        let delta = StateDelta.runScriptStatusChanged(worktreeID: worktreeID, isRunning: isRunning)
+        return .run { _ in await remoteControlClient.broadcastDelta(delta) }
 
       case .terminalEvent(.commandPaletteToggleRequested(let worktreeID)):
         if state.commandPalette.isPresented {
@@ -675,10 +684,17 @@ struct AppFeature {
       case .terminalEvent(.setupScriptConsumed(let worktreeID)):
         return .send(.repositories(.consumeSetupScript(worktreeID)))
 
+      case .terminalEvent(.taskStatusChanged(let worktreeID, let status)):
+        let remoteControlClient = remoteControlClient
+        let delta = StateDelta.taskStatusChanged(
+          worktreeID: worktreeID,
+          status: StateSerializer.serialize(status),
+        )
+        return .run { _ in await remoteControlClient.broadcastDelta(delta) }
+
       case .terminalEvent(.tabCreated),
         .terminalEvent(.tabClosed),
-        .terminalEvent(.focusChanged),
-        .terminalEvent(.taskStatusChanged):
+        .terminalEvent(.focusChanged):
         let remoteControlClient = remoteControlClient
         return .run { _ in await remoteControlClient.broadcastStateUpdate() }
 
