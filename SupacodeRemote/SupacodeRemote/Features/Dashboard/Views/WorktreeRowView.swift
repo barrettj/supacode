@@ -16,7 +16,7 @@ struct WorktreeRowView: View {
         Spacer()
 
         Circle()
-          .fill(worktreeState.taskStatus == .running ? .tint : .secondary)
+          .fill(worktreeState.taskStatus == .running ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
           .frame(width: 8, height: 8)
 
         if worktreeState.hasUnseenNotifications {
